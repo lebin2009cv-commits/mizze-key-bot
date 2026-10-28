@@ -6,7 +6,7 @@ tg.setHeaderColor('#050202');
 tg.setBackgroundColor('#050202');
 
 // Thay link Render của bạn vào đây
-const BACKEND_URL = "https://mizze-key-bot-xt5t.onrender.com";
+const BACKEND_URL = "https://mizze-key-bot-xt5t.onrender.com/";
 
 const userId = tg.initDataUnsafe?.user?.id;
 let currentPass = 0;
