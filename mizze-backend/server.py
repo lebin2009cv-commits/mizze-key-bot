@@ -266,7 +266,14 @@ async def cmd_listlink(message: Message):
         return
     txt = "🔗 **Danh sách Link 4m hiện tại:**\n" + "\n".join([f"{r[0]}. `{r[1]}`" for r in links])
     await message.answer(txt)
-
+@app.get("/get_pass")
+async def get_pass(user_id: int):
+    # Tạo mã token ngẫu nhiên cho vé vượt link
+    pass_token = str(uuid.uuid4())
+    return {
+        "status": "success",
+        "pass_token": pass_token
+    }
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(dp.start_polling(bot))
