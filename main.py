@@ -13,13 +13,12 @@ from telegram.ext import (
 # ==========================================
 # 1. CẤU HÌNH (Bạn có thể sửa trực tiếp ở đây)
 # ==========================================
-# Lấy Token và API Key từ biến môi trường trên Render
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "9120368691:AAE9J5NtmXqYBPiKmC7pJq_UKmjwlwny2sw")
 LINK4M_API_KEY = os.environ.get("LINK4M_API_KEY", "6a38ad422de39b3f34159f96")
 
 # ⚠️ QUAN TRỌNG: SỬA 2 DÒNG DƯỚI ĐÂY
 BOT_USERNAME = "GetkeyMizze_bot" # Tên bot của bạn (GetkeyMizze_bot)
-ADMIN_ID = 7976468365             # ID Telegram của bạn (7976468365)
+ADMIN_ID = 7976468365              # ID Telegram của bạn (7976468365)
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,7 +26,7 @@ logger = logging.getLogger(__name__)
 # ==========================================
 # 2. CƠ SỞ DỮ LIỆU TẠM THỜI (Lưu trên RAM)
 # ==========================================
-kho_key = []      # Nơi chứa key
+kho_key = []      # Nơi chứa các dict: {"key": "...", "pass": "..."}
 user_states = {}  # Lưu tiến trình vượt link: {user_id: 0, 1, 2}
 
 # ==========================================
@@ -59,7 +58,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id not in user_states:
         user_states[user_id] = 0
 
-    # Bắt tín hiệu khi người dùng vượt link xong và quay lại bot
     if context.args:
         step = context.args[0]
         if step == "step1":
@@ -76,7 +74,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("➕ Thêm Key (Admin)", callback_data='add_key')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    text = "👋 Chào bạn! Vượt 2 link để nhận 1 Key."
+    text = "👋 Chào bạn! Vượt 2 link để nhận 1 Key và Mật khẩu."
     
     if update.message:
         await update.message.reply_text(text, reply_markup=reply_markup)
@@ -117,24 +115,37 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.message.edit_text("📦 Kho Key đã hết sạch! Vui lòng báo Admin.")
                 return
             
-            key_nhan_duoc = kho_key.pop(0)
+            item = kho_key.pop(0)
             user_states[user_id] = 0 # Reset trạng thái
-            await query.message.edit_text(f"🎁 Chúc mừng! Bạn đã vượt thành công.\n\nKey của bạn là:\n`{key_nhan_duoc}`", parse_mode="Markdown")
+            
+            msg_text = (
+                f"🎁 Chúc mừng! Bạn đã vượt thành công.\n\n"
+                f"🔑 **Key:** `{item['key']}`\n"
+                f"🔒 **Mật khẩu:** `{item['pass']}`"
+            )
+            await query.message.edit_text(msg_text, parse_mode="Markdown")
 
     elif query.data == 'warehouse':
-        await query.message.edit_text(f"📦 Trong kho hiện còn {len(kho_key)} key.")
+        await query.message.edit_text(f"📦 Trong kho hiện còn {len(kho_key)} bộ (Key & Mật khẩu).")
 
     elif query.data == 'stats':
-        await query.message.edit_text(f"📊 Thống kê:\n- Key còn lại: {len(kho_key)}\n- Tiến trình của bạn: Bước {state}/2")
+        await query.message.edit_text(f"📊 Thống kê:\n- Bộ Key/MK còn lại: {len(kho_key)}\n- Tiến trình của bạn: Bước {state}/2")
 
     elif query.data == 'add_key':
         if user_id != ADMIN_ID:
             await query.message.edit_text("⚠️ Bạn không phải Admin!")
             return
-        await query.message.edit_text("📝 Hãy gửi danh sách key (mỗi key 1 dòng) vào chat để thêm vào kho.")
+        guide = (
+            "📝 **Hướng dẫn thêm Key & Mật khẩu:**\n"
+            "Gửi theo định dạng (mỗi dòng 1 bộ):\n"
+            "`KEY | MẬT_KHẨU`\n"
+            "Hoặc:\n"
+            "`KEY MẬT_KHẨU`"
+        )
+        await query.message.edit_text(guide, parse_mode="Markdown")
 
 async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Xử lý khi Admin gửi danh sách key"""
+    """Xử lý khi Admin gửi danh sách key kèm mật khẩu"""
     user_id = update.message.from_user.id
     if user_id != ADMIN_ID:
         return 
@@ -142,9 +153,47 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     lines = [line.strip() for line in text.split('\n') if line.strip()]
     
-    if len(lines) > 0:
-        kho_key.extend(lines)
-        await update.message.reply_text(f"✅ Đã thêm {len(lines)} key vào kho!")
+    added_count = 0
+    for line in lines:
+        # Hỗ trợ tách bằng dấu | hoặc dấu cách
+        if "|" in line:
+            parts = line.split("|", 1)
+        else:
+            parts = line.split(None, 1)
+            
+        if len(parts) == 2:
+            k = parts[0].strip()
+            p = parts[1].strip()
+            kho_key.append({"key": k, "pass": p})
+            added_count += 1
+            
+    if added_count > 0:
+        await update.message.reply_text(f"✅ Đã thêm thành công {added_count} bộ (Key & MK) vào kho!\n📦 Tổng kho hiện tại: {len(kho_key)}")
+
+# Lệnh xóa bớt key cho Admin: /delkey <số lượng> hoặc /clear_all
+async def delkey_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    if not context.args:
+        await update.message.reply_text("⚠️ Sử dụng: `/delkey <số_lượng>` hoặc `/clear_all` để xóa sạch kho.", parse_mode="Markdown")
+        return
+    
+    try:
+        num = int(context.args[0])
+        removed = 0
+        for _ in range(num):
+            if kho_key:
+                kho_key.pop(0)
+                removed += 1
+        await update.message.reply_text(f"🗑️ Đã xóa {removed} bộ key khỏi kho. Còn lại: {len(kho_key)}")
+    except ValueError:
+        await update.message.reply_text("⚠️ Số lượng phải là một con số hợp lệ!")
+
+async def clear_all_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    kho_key.clear()
+    await update.message.reply_text("🗑️ Đã làm sạch toàn bộ kho key!")
 
 # ==========================================
 # 5. CẤU HÌNH FLASK (Giữ Render chạy 24/7)
@@ -163,13 +212,13 @@ def run_flask():
 # 6. KHỞI CHẠY
 # ==========================================
 def main():
-    # Chạy Flask ngầm
     threading.Thread(target=run_flask, daemon=True).start()
     
-    # Khởi chạy Bot
     app = Application.builder().token(BOT_TOKEN).build()
     
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("delkey", delkey_command))
+    app.add_handler(CommandHandler("clear_all", clear_all_command))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_admin_text))
     
