@@ -18,8 +18,8 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "9120368691:AAE9J5NtmXqYBPiKmC7pJq_UKmjw
 LINK4M_API_KEY = os.environ.get("LINK4M_API_KEY", "6a38ad422de39b3f34159f96")
 
 # ⚠️ QUAN TRỌNG: SỬA 2 DÒNG DƯỚI ĐÂY
-BOT_USERNAME = "Getkey_mizze_bot" # Tên bot của bạn (GetkeyMizze_bot)
-ADMIN_ID = 123456789              # ID Telegram của bạn (7976468365)
+BOT_USERNAME = "GetkeyMizze_bot" # Tên bot của bạn (GetkeyMizze_bot)
+ADMIN_ID = 7976468365             # ID Telegram của bạn (7976468365)
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
