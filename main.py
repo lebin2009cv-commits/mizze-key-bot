@@ -2,6 +2,9 @@ import os
 import logging
 import threading
 import httpx
+import re
+import secrets
+import string
 from urllib.parse import quote
 from flask import Flask
 
@@ -11,7 +14,7 @@ from telegram.ext import (
 )
 
 # ==========================================
-# 1. CẤU HÌNH (Bạn có thể sửa trực tiếp ở đây)
+# 1. CẤU HÌNH
 # ==========================================
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "9120368691:AAE9J5NtmXqYBPiKmC7pJq_UKmjwlwny2sw")
 LINK4M_API_KEY = os.environ.get("LINK4M_API_KEY", "6a38ad422de39b3f34159f96")
@@ -24,10 +27,15 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 # ==========================================
-# 2. CƠ SỞ DỮ LIỆU TẠM THỜI (Lưu trên RAM)
+# 2. CƠ SỞ DỮ LIỆU TẠM THỜI
 # ==========================================
-kho_key = []      # Nơi chứa các dict: {"key": "...", "pass": "..."}
-user_states = {}  # Lưu tiến trình vượt link: {user_id: 0, 1, 2}
+kho_key_1h = []   # Chứa key 1 giờ (vượt 2 link)
+kho_key_3h = []   # Chứa key 3 giờ (vượt 3 link)
+
+# Lưu trạng thái: {user_id: {'type': '1h' hoặc '3h', 'step': 0, 1, 2, 3}}
+user_states = {}  
+# Lưu trạng thái Admin đang thêm key vào kho nào: {admin_id: '1h' hoặc '3h'}
+admin_adding_state = {} 
 
 # ==========================================
 # 3. HÀM TẠO LINK4M
@@ -43,183 +51,294 @@ async def shorten_link_async(long_url: str) -> str:
             data = response.json()
             if data.get("status") == "success":
                 return data.get("shortenedUrl")
-            else:
-                logger.error(f"Link4m báo lỗi: {data.get('message')}")
-                return None
+            return None
     except Exception as e:
         logger.error(f"Lỗi kết nối Link4m: {e}")
         return None
 
 # ==========================================
-# 4. GIAO DIỆN & XỬ LÝ CHÍNH
+# 4. XỬ LÝ TIN NHẮN TỪ ADMIN (DÙNG REGEX)
+# ==========================================
+async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
+    # Chỉ xử lý nếu là Admin và Admin đang trong trạng thái chờ nhập Key
+    if user_id != ADMIN_ID or user_id not in admin_adding_state:
+        return 
+    
+    kho_loai = admin_adding_state[user_id]
+    text = update.message.text
+    
+    # Regex tìm cặp "Key: xxx" và "Mật khẩu: yyy"
+    matches = re.findall(r"Key:\s*(.*?)\s*\n.*?Mật khẩu:\s*(.*?)(?:\n|$)", text, re.IGNORECASE)
+    
+    added_count = 0
+    if matches:
+        for k, p in matches:
+            # Gộp lại thành 1 khối định dạng chuẩn
+            formatted_key = f"🔑 Key: {k.strip()}\n🔒 Mật khẩu: {p.strip()}"
+            if kho_loai == '1h': kho_key_1h.append(formatted_key)
+            else: kho_key_3h.append(formatted_key)
+            added_count += 1
+    else:
+        # Fallback: Nếu text không có chữ "Key:" và "Mật khẩu:", chia khối bằng dấu xuống dòng kép
+        blocks = text.split('\n\n')
+        for block in blocks:
+            if block.strip():
+                if kho_loai == '1h': kho_key_1h.append(block.strip())
+                else: kho_key_3h.append(block.strip())
+                added_count += 1
+                
+    if added_count > 0:
+        await update.message.reply_text(f"✅ Đã trích xuất và thêm {added_count} Key vào kho **{kho_loai.upper()}** thành công!", parse_mode="Markdown")
+    else:
+        await update.message.reply_text("❌ Không tìm thấy Key hợp lệ trong tin nhắn.")
+    
+    # Xoá trạng thái chờ thêm key
+    del admin_adding_state[user_id]
+
+# ==========================================
+# 5. HÀM TẠO KEY RANDOM (Dùng cho lệnh /rangex)
+# ==========================================
+def generate_random_key(key_len=15):
+    alphabet = string.ascii_uppercase + string.digits
+    key = ''.join(secrets.choice(alphabet) for _ in range(key_len))
+    password = ''.join(secrets.choice(alphabet) for _ in range(key_len))
+    return f"🔑 Key: {key}\n🔒 Mật khẩu: {password}"
+
+# ==========================================
+# 6. GIAO DIỆN & XỬ LÝ CHÍNH
 # ==========================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id not in user_states:
-        user_states[user_id] = 0
+        user_states[user_id] = {'type': None, 'step': 0}
 
+    # Bắt tín hiệu vượt link thành công (Deep link)
     if context.args:
-        step = context.args[0]
-        if step == "step1":
-            user_states[user_id] = 1
-            await update.message.reply_text("✅ Đã xong link 1/2.\nBấm 'Lấy Key' để tiếp tục vượt link 2.")
-        elif step == "step2":
-            user_states[user_id] = 2
-            await update.message.reply_text("✅ Đã xong link 2/2.\nBấm 'Lấy Key' để nhận phần thưởng!")
+        arg = context.args[0] # Ví dụ: "1h_step1" hoặc "3h_step2"
+        try:
+            key_type, step_str = arg.split("_")
+            step_num = int(step_str.replace("step", ""))
+            user_states[user_id]['type'] = key_type
+            user_states[user_id]['step'] = step_num
+            
+            if key_type == "1h":
+                if step_num == 1: await update.message.reply_text("✅ Đã xong link 1/2. Bấm 'Lấy Key 1H' để tiếp tục.")
+                elif step_num == 2: await update.message.reply_text("✅ Đã xong link 2/2. Bấm 'Lấy Key 1H' để nhận thưởng!")
+            elif key_type == "3h":
+                if step_num == 1: await update.message.reply_text("✅ Đã xong link 1/3. Bấm 'Lấy Key 3H' để tiếp tục.")
+                elif step_num == 2: await update.message.reply_text("✅ Đã xong link 2/3. Bấm 'Lấy Key 3H' để tiếp tục.")
+                elif step_num == 3: await update.message.reply_text("✅ Đã xong link 3/3. Bấm 'Lấy Key 3H' để nhận thưởng!")
+        except Exception:
+            pass
 
     keyboard = [
-        [InlineKeyboardButton("🔑 Lấy Key", callback_data='get_key')],
-        [InlineKeyboardButton("📦 Kho Key", callback_data='warehouse')],
-        [InlineKeyboardButton("📊 Thống kê", callback_data='stats')],
-        [InlineKeyboardButton("➕ Thêm Key (Admin)", callback_data='add_key')]
+        [InlineKeyboardButton("🔑 Vượt 2 link - Lấy Key 1H", callback_data='get_1h')],
+        [InlineKeyboardButton("🔥 Vượt 3 link - Lấy Key 3H", callback_data='get_3h')],
+        [InlineKeyboardButton("📦 Kho Key (Admin)", callback_data='admin_kho')],
+        [InlineKeyboardButton("➕ Thêm Key (Admin)", callback_data='admin_add')]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    text = "👋 Chào bạn! Vượt 2 link để nhận 1 Key và Mật khẩu."
+    text = "👋 Chào bạn! Vui lòng chọn loại Key bạn muốn lấy:"
     
     if update.message:
-        await update.message.reply_text(text, reply_markup=reply_markup)
+        await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
     elif update.callback_query:
-        await update.callback_query.message.edit_text(text, reply_markup=reply_markup)
+        await update.callback_query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     user_id = query.from_user.id
-    state = user_states.get(user_id, 0)
+    state = user_states.get(user_id, {'type': None, 'step': 0})
 
-    if query.data == 'get_key':
-        if state == 0:
-            await query.message.edit_text("⏳ Đang tạo link vượt (1/2)...")
-            target_url = f"https://t.me/{BOT_USERNAME}?start=step1"
+    # --- XỬ LÝ LẤY KEY 1H ---
+    if query.data == 'get_1h':
+        if state['type'] != '1h':
+            state = {'type': '1h', 'step': 0}
+            user_states[user_id] = state
+
+        if state['step'] == 0:
+            target_url = f"https://t.me/{BOT_USERNAME}?start=1h_step1"
             short_url = await shorten_link_async(target_url)
-            
             if short_url:
                 keyboard = [[InlineKeyboardButton("🔗 Vượt Link 1/2", url=short_url)]]
                 await query.message.edit_text("Bấm nút dưới để vượt Link 1:", reply_markup=InlineKeyboardMarkup(keyboard))
             else:
-                await query.message.edit_text("❌ Lỗi tạo link Link4m. Thử lại sau.")
-
-        elif state == 1:
-            await query.message.edit_text("⏳ Đang tạo link vượt (2/2)...")
-            target_url = f"https://t.me/{BOT_USERNAME}?start=step2"
+                await query.message.edit_text("❌ Lỗi tạo link. Thử lại sau.")
+                
+        elif state['step'] == 1:
+            target_url = f"https://t.me/{BOT_USERNAME}?start=1h_step2"
             short_url = await shorten_link_async(target_url)
-            
             if short_url:
                 keyboard = [[InlineKeyboardButton("🔗 Vượt Link 2/2", url=short_url)]]
-                await query.message.edit_text("Sắp xong rồi! Bấm nút dưới để vượt Link 2:", reply_markup=InlineKeyboardMarkup(keyboard))
+                await query.message.edit_text("Bấm nút dưới để vượt Link 2:", reply_markup=InlineKeyboardMarkup(keyboard))
             else:
-                await query.message.edit_text("❌ Lỗi tạo link Link4m. Thử lại sau.")
-
-        elif state >= 2:
-            if not kho_key:
-                await query.message.edit_text("📦 Kho Key đã hết sạch! Vui lòng báo Admin.")
+                await query.message.edit_text("❌ Lỗi tạo link. Thử lại sau.")
+                
+        elif state['step'] >= 2:
+            if not kho_key_1h:
+                await query.message.edit_text("📦 Kho Key 1H đã hết sạch! Vui lòng báo Admin.")
                 return
-            
-            item = kho_key.pop(0)
-            user_states[user_id] = 0 # Reset trạng thái
-            
-            msg_text = (
-                f"🎁 Chúc mừng! Bạn đã vượt thành công.\n\n"
-                f"🔑 **Key:** `{item['key']}`\n"
-                f"🔒 **Mật khẩu:** `{item['pass']}`"
-            )
-            await query.message.edit_text(msg_text, parse_mode="Markdown")
+            key_nhan = kho_key_1h.pop(0)
+            user_states[user_id] = {'type': None, 'step': 0} # Reset
+            await query.message.edit_text(f"🎁 Chúc mừng! Bạn đã vượt thành công.\n\n{key_nhan}", parse_mode="Markdown")
 
-    elif query.data == 'warehouse':
-        await query.message.edit_text(f"📦 Trong kho hiện còn {len(kho_key)} bộ (Key & Mật khẩu).")
+    # --- XỬ LÝ LẤY KEY 3H ---
+    elif query.data == 'get_3h':
+        if state['type'] != '3h':
+            state = {'type': '3h', 'step': 0}
+            user_states[user_id] = state
 
-    elif query.data == 'stats':
-        await query.message.edit_text(f"📊 Thống kê:\n- Bộ Key/MK còn lại: {len(kho_key)}\n- Tiến trình của bạn: Bước {state}/2")
+        if state['step'] == 0:
+            target_url = f"https://t.me/{BOT_USERNAME}?start=3h_step1"
+            short_url = await shorten_link_async(target_url)
+            if short_url:
+                keyboard = [[InlineKeyboardButton("🔗 Vượt Link 1/3", url=short_url)]]
+                await query.message.edit_text("Bấm nút dưới để vượt Link 1:", reply_markup=InlineKeyboardMarkup(keyboard))
+            else:
+                await query.message.edit_text("❌ Lỗi tạo link. Thử lại sau.")
+                
+        elif state['step'] == 1:
+            target_url = f"https://t.me/{BOT_USERNAME}?start=3h_step2"
+            short_url = await shorten_link_async(target_url)
+            if short_url:
+                keyboard = [[InlineKeyboardButton("🔗 Vượt Link 2/3", url=short_url)]]
+                await query.message.edit_text("Bấm nút dưới để vượt Link 2:", reply_markup=InlineKeyboardMarkup(keyboard))
+            else:
+                await query.message.edit_text("❌ Lỗi tạo link. Thử lại sau.")
+                
+        elif state['step'] == 2:
+            target_url = f"https://t.me/{BOT_USERNAME}?start=3h_step3"
+            short_url = await shorten_link_async(target_url)
+            if short_url:
+                keyboard = [[InlineKeyboardButton("🔗 Vượt Link 3/3", url=short_url)]]
+                await query.message.edit_text("Sắp xong rồi! Bấm nút dưới để vượt Link 3:", reply_markup=InlineKeyboardMarkup(keyboard))
+            else:
+                await query.message.edit_text("❌ Lỗi tạo link. Thử lại sau.")
+                
+        elif state['step'] >= 3:
+            if not kho_key_3h:
+                await query.message.edit_text("📦 Kho Key 3H đã hết sạch! Vui lòng báo Admin.")
+                return
+            key_nhan = kho_key_3h.pop(0)
+            user_states[user_id] = {'type': None, 'step': 0} # Reset
+            await query.message.edit_text(f"🎁 Chúc mừng! Bạn đã vượt thành công.\n\n{key_nhan}", parse_mode="Markdown")
 
-    elif query.data == 'add_key':
-        if user_id != ADMIN_ID:
-            await query.message.edit_text("⚠️ Bạn không phải Admin!")
-            return
-        guide = (
-            "📝 **Hướng dẫn thêm Key & Mật khẩu:**\n"
-            "Gửi theo định dạng (mỗi dòng 1 bộ):\n"
-            "`KEY | MẬT_KHẨU`\n"
-            "Hoặc:\n"
-            "`KEY MẬT_KHẨU`"
-        )
-        await query.message.edit_text(guide, parse_mode="Markdown")
+    # --- ADMIN: XEM KHO ---
+    elif query.data == 'admin_kho':
+        if user_id != ADMIN_ID: return
+        text = f"📦 **THỐNG KÊ KHO KEY**\n\n- Key 1H còn lại: `{len(kho_key_1h)}`\n- Key 3H còn lại: `{len(kho_key_3h)}`"
+        await query.message.edit_text(text, parse_mode="Markdown")
 
-async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Xử lý khi Admin gửi danh sách key kèm mật khẩu"""
-    user_id = update.message.from_user.id
-    if user_id != ADMIN_ID:
-        return 
-    
-    text = update.message.text
-    lines = [line.strip() for line in text.split('\n') if line.strip()]
-    
-    added_count = 0
-    for line in lines:
-        # Hỗ trợ tách bằng dấu | hoặc dấu cách
-        if "|" in line:
-            parts = line.split("|", 1)
-        else:
-            parts = line.split(None, 1)
-            
-        if len(parts) == 2:
-            k = parts[0].strip()
-            p = parts[1].strip()
-            kho_key.append({"key": k, "pass": p})
-            added_count += 1
-            
-    if added_count > 0:
-        await update.message.reply_text(f"✅ Đã thêm thành công {added_count} bộ (Key & MK) vào kho!\n📦 Tổng kho hiện tại: {len(kho_key)}")
+    # --- ADMIN: CHỌN KHO ĐỂ THÊM ---
+    elif query.data == 'admin_add':
+        if user_id != ADMIN_ID: return
+        keyboard = [
+            [InlineKeyboardButton("Thêm vào kho 1H", callback_data='add_to_1h')],
+            [InlineKeyboardButton("Thêm vào kho 3H", callback_data='add_to_3h')],
+        ]
+        await query.message.edit_text("Bạn muốn thêm Key vào kho nào?", reply_markup=InlineKeyboardMarkup(keyboard))
 
-# Lệnh xóa bớt key cho Admin: /delkey <số lượng> hoặc /clear_all
-async def delkey_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID:
-        return
-    if not context.args:
-        await update.message.reply_text("⚠️ Sử dụng: `/delkey <số_lượng>` hoặc `/clear_all` để xóa sạch kho.", parse_mode="Markdown")
-        return
-    
-    try:
-        num = int(context.args[0])
-        removed = 0
-        for _ in range(num):
-            if kho_key:
-                kho_key.pop(0)
-                removed += 1
-        await update.message.reply_text(f"🗑️ Đã xóa {removed} bộ key khỏi kho. Còn lại: {len(kho_key)}")
-    except ValueError:
-        await update.message.reply_text("⚠️ Số lượng phải là một con số hợp lệ!")
+    elif query.data == 'add_to_1h':
+        if user_id != ADMIN_ID: return
+        admin_adding_state[user_id] = '1h'
+        await query.message.edit_text("📝 Hãy gửi danh sách Key 1H (mỗi key 1 khối) vào chat ngay bây giờ:")
 
-async def clear_all_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID:
-        return
-    kho_key.clear()
-    await update.message.reply_text("🗑️ Đã làm sạch toàn bộ kho key!")
+    elif query.data == 'add_to_3h':
+        if user_id != ADMIN_ID: return
+        admin_adding_state[user_id] = '3h'
+        await query.message.edit_text("📝 Hãy gửi danh sách Key 3H (mỗi key 1 khối) vào chat ngay bây giờ:")
 
 # ==========================================
-# 5. CẤU HÌNH FLASK (Giữ Render chạy 24/7)
+# 7. CÁC LỆNH ADMIN (XEM, XOÁ, RANGEX)
+# ==========================================
+async def cmd_kho(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.from_user.id != ADMIN_ID: return
+    await update.message.reply_text(
+        f"📦 **KHO KEY HIỆN TẠI**\n\n"
+        f"🕒 Key 1H: `{len(kho_key_1h)}`\n"
+        f"🔥 Key 3H: `{len(kho_key_3h)}`", 
+        parse_mode="Markdown"
+    )
+
+async def cmd_xoa(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.from_user.id != ADMIN_ID: return
+    if not context.args:
+        await update.message.reply_text("⚠️ Cú pháp: `/xoa 1h <từ_khoá>` hoặc `/xoa 3h <từ_khoá>`\nVí dụ: `/xoa 1h KEY1`", parse_mode="Markdown")
+        return
+    
+    kho_loai = context.args[0].lower()
+    keyword = " ".join(context.args[1:])
+    
+    global kho_key_1h, kho_key_3h
+    target_list = kho_key_1h if kho_loai == '1h' else kho_key_3h if kho_loai == '3h' else None
+    
+    if not target_list:
+        await update.message.reply_text("❌ Sai cú pháp. Chỉ chọn `1h` hoặc `3h`.", parse_mode="Markdown")
+        return
+
+    found = False
+    for i, k in enumerate(target_list):
+        if keyword in k:
+            target_list.pop(i)
+            found = True
+            break
+            
+    if found:
+        await update.message.reply_text(f"✅ Đã xoá key chứa `{keyword}` khỏi kho {kho_loai.upper()}.", parse_mode="Markdown")
+    else:
+        await update.message.reply_text("❌ Không tìm thấy key nào chứa từ khoá đó.")
+
+async def cmd_rangex(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Lệnh tự động tạo Key random: /rangex <1h|3h> <số_lượng>"""
+    if update.message.from_user.id != ADMIN_ID: return
+    if len(context.args) < 2:
+        await update.message.reply_text("⚠️ Cú pháp: `/rangex <1h|3h> <số_lượng>`\nVí dụ: `/rangex 1h 50` (Tạo 50 key 1H)", parse_mode="Markdown")
+        return
+    
+    kho_loai = context.args[0].lower()
+    try:
+        so_luong = int(context.args[1])
+    except:
+        await update.message.reply_text("❌ Số lượng phải là chữ số.")
+        return
+
+    if kho_loai == '1h':
+        for _ in range(so_luong):
+            kho_key_1h.append(generate_random_key())
+        await update.message.reply_text(f"✅ Đã tạo và thêm thành công {so_luong} Key vào kho 1H!")
+    elif kho_loai == '3h':
+        for _ in range(so_luong):
+            kho_key_3h.append(generate_random_key())
+        await update.message.reply_text(f"✅ Đã tạo và thêm thành công {so_luong} Key vào kho 3H!")
+    else:
+        await update.message.reply_text("❌ Sai cú pháp. Chỉ chọn `1h` hoặc `3h`.", parse_mode="Markdown")
+
+# ==========================================
+# 8. FLASK & KHỞI CHẠY
 # ==========================================
 flask_app = Flask(__name__)
-
 @flask_app.route('/')
-def health_check():
-    return "Bot is running!", 200
-
+def health_check(): return "Bot is running!", 200
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
     flask_app.run(host="0.0.0.0", port=port)
 
-# ==========================================
-# 6. KHỞI CHẠY
-# ==========================================
 def main():
     threading.Thread(target=run_flask, daemon=True).start()
     
     app = Application.builder().token(BOT_TOKEN).build()
     
+    # Lệnh cơ bản
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("delkey", delkey_command))
-    app.add_handler(CommandHandler("clear_all", clear_all_command))
     app.add_handler(CallbackQueryHandler(button_handler))
+    
+    # Các lệnh Admin
+    app.add_handler(CommandHandler("kho", cmd_kho))
+    app.add_handler(CommandHandler("xoa", cmd_xoa))
+    app.add_handler(CommandHandler("rangex", cmd_rangex))
+    
+    # Bắt text (dành cho Admin thêm key)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_admin_text))
     
     logger.info("Bot đang chạy...")
