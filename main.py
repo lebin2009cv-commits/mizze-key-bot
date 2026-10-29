@@ -19,10 +19,10 @@ from telegram.ext import (
 # ==========================================
 # 1. CẤU HÌNH HỆ THỐNG
 # ==========================================
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "9112215461:AAFbhh-nluyw0QkW8nDSH9hW_qOzxfukKD4")
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "9112215461:AAFDBZr4BEt5e5iSFW33AfpXd6iMrdPBaaM")
 LINK4M_API_KEY = os.environ.get("LINK4M_API_KEY", "6a38ad422de39b3f34159f96")
 
-BOT_USERNAME = "GetkeyMizze_bot"
+BOT_USERNAME = "@GetkeyMizzebot"
 ADMIN_ID = 7976468365
 
 USER_SIGNATURE = "\n\n────────────────────\n🤖 <i>Powered by Mizze Key Bot</i>"
