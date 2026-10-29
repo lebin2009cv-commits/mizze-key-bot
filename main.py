@@ -347,10 +347,51 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         await query.message.edit_text("Chọn kho để tạo Key tự động:", reply_markup=InlineKeyboardMarkup(keyboard))
 
+  elif query.data == 'admin_add_menu':
+        if user_id != ADMIN_ID: return
+        keyboard = [
+            [InlineKeyboardButton("Thêm Kho 1H", callback_data='add_key_1h')],
+            [InlineKeyboardButton("Thêm Kho 3H", callback_data='add_key_3h')],
+            [InlineKeyboardButton("Thêm Kho 6H", callback_data='add_key_6h')],
+            [InlineKeyboardButton("⬅️ Quay lại", callback_data='admin_panel')]
+        ]
+        await query.message.edit_text("Chọn kho để thêm Key:", reply_markup=InlineKeyboardMarkup(keyboard))
+
+    elif query.data == 'admin_del_menu':
+        if user_id != ADMIN_ID: return
+        keyboard = [
+            [InlineKeyboardButton("Xoá Kho 1H", callback_data='del_key_1h')],
+            [InlineKeyboardButton("Xoá Kho 3H", callback_data='del_key_3h')],
+            [InlineKeyboardButton("Xoá Kho 6H", callback_data='del_key_6h')],
+            [InlineKeyboardButton("⬅️ Quay lại", callback_data='admin_panel')]
+        ]
+        await query.message.edit_text("Chọn kho để xoá Key:", reply_markup=InlineKeyboardMarkup(keyboard))
+
+    elif query.data == 'admin_rand_menu':
+        if user_id != ADMIN_ID: return
+        keyboard = [
+            [InlineKeyboardButton("Tạo Random 1H", callback_data='rand_key_1h')],
+            [InlineKeyboardButton("Tạo Random 3H", callback_data='rand_key_3h')],
+            [InlineKeyboardButton("Tạo Random 6H", callback_data='rand_key_6h')],
+            [InlineKeyboardButton("⬅️ Quay lại", callback_data='admin_panel')]
+        ]
+        await query.message.edit_text("Chọn kho để tạo Key tự động:", reply_markup=InlineKeyboardMarkup(keyboard))
+
+    # --- ĐÂY LÀ ĐOẠN ĐÃ ĐƯỢC SỬA LỖI TÁCH CHUỖI ---
     elif query.data.startswith(('add_key_', 'del_key_', 'rand_key_')):
         if user_id != ADMIN_ID: return
-        action, k_type = query.data.split('_')[1], query.data.split('_')[2]
+
+        # Tách chuỗi: ví dụ 'add_key_1h' -> parts[0]='add', parts[1]='key', parts[2]='1h'
+        parts = query.data.split('_')
+        action = parts[0]
+        k_type = parts[2]
 
         if action == 'add':
             admin_adding_state[user_id] = f'add_{k_type}'
-            await query.message.edit_
+            await query.message.edit_text(f"📝 Hãy dán danh sách Key {k_type.upper()} vào chat:")
+        elif action == 'del':
+            admin_adding_state[user_id] = f'del_{k_type}'
+            await query.message.edit_text(f"🗑 Hãy dán <b>Key hoặc Mật khẩu</b> muốn xoá khỏi kho {k_type.upper()}:", parse_mode="HTML")
+        elif action == 'rand':
+            admin_adding_state[user_id] = f'rand_{k_type}'
+            await query.message.edit_text(f"🎲 Nhập <b>số lượng</b> Key {k_type.upper()} muốn tạo (VD: 10):", parse_mode="HTML")
