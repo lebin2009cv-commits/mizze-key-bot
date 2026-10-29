@@ -17,16 +17,14 @@ from telegram.ext import (
 )
 
 # ==========================================
-# 1. CẤU HÌNH (Sửa thông tin của bạn ở đây)
+# 1. CẤU HÌNH HỆ THỐNG
 # ==========================================
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "9112215461:AAFbhh-nluyw0QkW8nDSH9hW_qOzxfukKD4")
 LINK4M_API_KEY = os.environ.get("LINK4M_API_KEY", "6a38ad422de39b3f34159f96")
 
-# ⚠️ QUAN TRỌNG: SỬA 2 DÒNG DƯỚI ĐÂY
-BOT_USERNAME = "GetkeyMizze_bot" # Tên bot của bạn (GetkeyMizzebot)
-ADMIN_ID = 7976468365              # ID Telegram của bạn (7976468365)
+BOT_USERNAME = "GetkeyMizze_bot"
+ADMIN_ID = 7976468365
 
-# ✍️ CHỮ KÝ MẪU (Hiển thị cuối mỗi tin nhắn nhận key hoặc thông báo)
 USER_SIGNATURE = "\n\n────────────────────\n🤖 <i>Powered by Mizze Key Bot</i>"
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
@@ -42,7 +40,7 @@ kho_key_6h = []
 user_states = {}
 cooldowns = {}
 admin_adding_state = {}
-all_users = set() # Lưu ID người dùng
+all_users = set()
 bot_status = {"active": True}
 
 # ==========================================
@@ -263,7 +261,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == 'back_menu':
         await show_main_menu(update, context)
 
-    # --- MENU ADMIN ---
     elif query.data == 'admin_panel':
         if user_id != ADMIN_ID: return
         status_text = "🟢 ĐANG HOẠT ĐỘNG" if bot_status["active"] else "🔴 Đang bảo trì"
@@ -326,30 +323,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == 'admin_add_menu':
         if user_id != ADMIN_ID: return
         keyboard = [
-            [InlineKeyboardButton("Thêm Kho 1H", callback_data='add_key_1h'), InlineKeyboardButton("Thêm Kho 3H", callback_data='add_key_3h'), InlineKeyboardButton("Thêm Kho 6H", callback_data='add_key_6h')],
-            [InlineKeyboardButton("⬅️ Quay lại", callback_data='admin_panel')]
-        ]
-        await query.message.edit_text("Chọn kho để thêm Key:", reply_markup=InlineKeyboardMarkup(keyboard))
-
-    elif query.data == 'admin_del_menu':
-        if user_id != ADMIN_ID: return
-        keyboard = [
-            [InlineKeyboardButton("Xoá Kho 1H", callback_data='del_key_1h'), InlineKeyboardButton("Xoá Kho 3H", callback_data='del_key_3h'), InlineKeyboardButton("Xoá Kho 6H", callback_data='del_key_6h')],
-            [InlineKeyboardButton("⬅️ Quay lại", callback_data='admin_panel')]
-        ]
-        await query.message.edit_text("Chọn kho để xoá Key:", reply_markup=InlineKeyboardMarkup(keyboard))
-
-    elif query.data == 'admin_rand_menu':
-        if user_id != ADMIN_ID: return
-        keyboard = [
-            [InlineKeyboardButton("Tạo Random 1H", callback_data='rand_key_1h'), InlineKeyboardButton("Tạo Random 3H", callback_data='rand_key_3h'), InlineKeyboardButton("Tạo Random 6H", callback_data='rand_key_6h')],
-            [InlineKeyboardButton("⬅️ Quay lại", callback_data='admin_panel')]
-        ]
-        await query.message.edit_text("Chọn kho để tạo Key tự động:", reply_markup=InlineKeyboardMarkup(keyboard))
-
-  elif query.data == 'admin_add_menu':
-        if user_id != ADMIN_ID: return
-        keyboard = [
             [InlineKeyboardButton("Thêm Kho 1H", callback_data='add_key_1h')],
             [InlineKeyboardButton("Thêm Kho 3H", callback_data='add_key_3h')],
             [InlineKeyboardButton("Thêm Kho 6H", callback_data='add_key_6h')],
@@ -377,11 +350,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         await query.message.edit_text("Chọn kho để tạo Key tự động:", reply_markup=InlineKeyboardMarkup(keyboard))
 
-    # --- ĐÂY LÀ ĐOẠN ĐÃ ĐƯỢC SỬA LỖI TÁCH CHUỖI ---
     elif query.data.startswith(('add_key_', 'del_key_', 'rand_key_')):
         if user_id != ADMIN_ID: return
 
-        # Tách chuỗi: ví dụ 'add_key_1h' -> parts[0]='add', parts[1]='key', parts[2]='1h'
         parts = query.data.split('_')
         action = parts[0]
         k_type = parts[2]
@@ -395,3 +366,88 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif action == 'rand':
             admin_adding_state[user_id] = f'rand_{k_type}'
             await query.message.edit_text(f"🎲 Nhập <b>số lượng</b> Key {k_type.upper()} muốn tạo (VD: 10):", parse_mode="HTML")
+
+# ==========================================
+# 6. XỬ LÝ TEXT TỪ ADMIN
+# ==========================================
+async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
+    if user_id != ADMIN_ID or user_id not in admin_adding_state:
+        return
+
+    state = admin_adding_state[user_id]
+    text = update.message.text.strip()
+
+    if state == 'broadcast':
+        await update.message.reply_text("⏳ Đang gửi thông báo...")
+        success = await broadcast(context, f"📢 <b>THÔNG BÁO TỪ ADMIN</b>\n\n{html.escape(text)}")
+        await update.message.reply_text(f"✅ Đã gửi thành công đến {success} người dùng.")
+        del admin_adding_state[user_id]
+        return
+
+    action, k_type = state.split('_')
+    target_list = kho_key_1h if k_type == '1h' else kho_key_3h if k_type == '3h' else kho_key_6h
+
+    if action == 'add':
+        matches = re.findall(r"Key:\s*(.*?)\s*\n.*?Mật khẩu:\s*(.*?)(?:\n|$)", text, re.IGNORECASE)
+        added_count = 0
+        if matches:
+            for k, p in matches:
+                target_list.append(f"<b>🔑 Key:</b> <code>{k.strip()}</code>\n<b>🔒 Mật khẩu:</b> <code>{p.strip()}</code>")
+                added_count += 1
+        else:
+            blocks = text.split('\n\n')
+            for block in blocks:
+                if block.strip():
+                    target_list.append(html.escape(block.strip()))
+                    added_count += 1
+        if added_count > 0:
+            await update.message.reply_text(f"✅ Đã thêm {added_count} Key vào kho <b>{k_type.upper()}</b>!" + USER_SIGNATURE, parse_mode="HTML")
+            await broadcast(context, f"🎉 <b>CẬP NHẬT KHO KEY {k_type.upper()}!</b>\n\nAdmin vừa thêm <b>{added_count}</b> key mới. Nhanh tay vào lấy nhé! 🏃‍♂️💨")
+        else:
+            await update.message.reply_text("❌ Không tìm thấy định dạng key hợp lệ.", parse_mode="HTML")
+        del admin_adding_state[user_id]
+
+    elif action == 'del':
+        found = False
+        for i, k in enumerate(target_list):
+            if text in k:
+                target_list.pop(i)
+                found = True
+                break
+        if found: await update.message.reply_text(f"✅ Đã xoá Key thành công khỏi kho {k_type.upper()}." + USER_SIGNATURE, parse_mode="HTML")
+        else: await update.message.reply_text("❌ Không tìm thấy Key này trong kho." + USER_SIGNATURE, parse_mode="HTML")
+        del admin_adding_state[user_id]
+
+    elif action == 'rand':
+        try:
+            so_luong = int(text)
+            for _ in range(so_luong):
+                target_list.append(generate_random_key())
+            await update.message.reply_text(f"✅ Đã tạo tự động {so_luong} Key vào kho {k_type.upper()}!" + USER_SIGNATURE, parse_mode="HTML")
+        except ValueError:
+            await update.message.reply_text("❌ Vui lòng chỉ nhập số hợp lệ (Ví dụ: 10).", parse_mode="HTML")
+        del admin_adding_state[user_id]
+
+# ==========================================
+# 7. KHỞI CHẠY
+# ==========================================
+flask_app = Flask(__name__)
+@flask_app.route('/')
+def health_check(): return "Bot is running!", 200
+def run_flask():
+    flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+
+def main():
+    threading.Thread(target=run_flask, daemon=True).start()
+    app = Application.builder().token(BOT_TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_admin_text))
+
+    logger.info("Bot đang chạy...")
+    app.run_polling(drop_pending_updates=True)
+
+if __name__ == '__main__':
+    main()
