@@ -1,7 +1,20 @@
 services:
   - type: web
-    name: telegram-key-bot
+    name: mizze-key-bot
     env: python
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python main.py
-    autoDeploy: true
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: LINK4M_API_KEY
+        sync: false
+      - key: YEUMONEY_API_KEY
+        sync: false
+      - key: SHRINKME_API_KEY
+        sync: false
+      - key: SEPAY_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.9
