@@ -5,7 +5,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 
 # 1. CẤU HÌNH HỆ THỐNG
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "9112215461:AAFDBZr4BEt5e5iSFW33AfpXd6iMrdPBaaM")
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "9120368691:AAE9J5NtmXqYBPiKmC7pJq_UKmjwlwny2sw")
 BOT_USERNAME = "GetkeyMizzebot"
 ADMIN_ID = 7976468365
 
@@ -54,6 +54,20 @@ def check_daily_limit(user_id):
 def add_daily_usage(user_id):
     if user_id in daily_limits:
         daily_limits[user_id]['count'] += 1
+
+# Hàm hỗ trợ hiển thị giao diện không bị lỗi ảnh
+async def edit_or_send(query, text, reply_markup=None, parse_mode="HTML"):
+    try:
+        if query.message.photo:
+            await query.message.delete()
+            await query.message.reply_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
+        else:
+            await query.message.edit_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
+    except Exception:
+        try:
+            await query.message.reply_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
+        except:
+            pass
 
 # 3. API RÚT GỌN LINK
 async def shorten_link4m(long_url: str) -> str:
@@ -216,36 +230,36 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query.data == 'back_menu': await show_main_menu(update, context)
     elif query.data == 'menu_guide':
         text = "📖 <b>HƯỚNG DẪN SỬ DỤNG BOT</b>\n\n1️⃣ Lấy Key miễn phí: Chọn Lấy Key -> Vượt link.\n2️⃣ Mua Key: Nạp tiền -> Cửa hàng." + USER_SIGNATURE
-        await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]]), parse_mode="HTML")
+        await edit_or_send(query, text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]]), parse_mode="HTML")
     elif query.data == 'menu_getkey':
         can_get, remaining = check_daily_limit(user_id)
         if not can_get:
-            await query.message.edit_text("🚫 <b>HẾT LƯỢT LẤY KEY HÔM NAY!</b>", parse_mode="HTML")
+            await edit_or_send(query, "🚫 <b>HẾT LƯỢT LẤY KEY HÔM NAY!</b>", parse_mode="HTML")
             return
         keyboard = [
             [InlineKeyboardButton("🔑 KEY 1H (2 LINK)", callback_data='get_1h')],
             [InlineKeyboardButton("💎 KEY 3H (4 LINK)", callback_data='get_3h')],
             [InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]
         ]
-        await query.message.edit_text(f"👇 Bạn còn <b>{remaining}/3</b> lượt hôm nay. Chọn loại Key:", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+        await edit_or_send(query, f"👇 Bạn còn <b>{remaining}/3</b> lượt hôm nay. Chọn loại Key:", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
     elif query.data.startswith('get_'):
         can_get, remaining = check_daily_limit(user_id)
         if not can_get:
-            await query.message.edit_text("🚫 <b>HẾT LƯỢT HÔM NAY!</b>", parse_mode="HTML")
+            await edit_or_send(query, "🚫 <b>HẾT LƯỢT HÔM NAY!</b>", parse_mode="HTML")
             return
         key_type = query.data.split('_')[1]
         can_cd, time_left = check_cooldown(user_id, key_type)
         if not can_cd:
-            await query.message.edit_text(f"🚫 <b>ĐANG CHỜ!</b> Thử lại sau: <b>{time_left}</b>", parse_mode="HTML")
+            await edit_or_send(query, f"🚫 <b>ĐANG CHỜ!</b> Thử lại sau: <b>{time_left}</b>", parse_mode="HTML")
             return
         token = generate_token()
         user_states[user_id] = {'type': key_type, 'step': 0, 'token': token}
         if key_type == '1h':
             url = await shorten_yeumoney(f"https://t.me/{BOT_USERNAME}?start=1h_step1_{token}")
-            if url: await query.message.edit_text("🔄 <b>TIẾN TRÌNH 1/2</b>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚀 VƯỢT LINK", url=url)]]), parse_mode="HTML")
+            if url: await edit_or_send(query, "🔄 <b>TIẾN TRÌNH 1/2</b>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚀 VƯỢT LINK", url=url)]]), parse_mode="HTML")
         elif key_type == '3h':
             url = await shorten_link4m(f"https://t.me/{BOT_USERNAME}?start=3h_step1_{token}")
-            if url: await query.message.edit_text("🔄 <b>TIẾN TRÌNH 1/4</b>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚀 VƯỢT LINK", url=url)]]), parse_mode="HTML")
+            if url: await edit_or_send(query, "🔄 <b>TIẾN TRÌNH 1/4</b>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚀 VƯỢT LINK", url=url)]]), parse_mode="HTML")
     elif query.data == 'menu_shop':
         text = f"🛒 <b>CỬA HÀNG BÁN KEY</b>\n💰 Số dư: <b>{u['balance']:,}đ</b>\n\n🔑 1H: {PRICE_SHOP_1H:,}đ | ⏳ 12H: {PRICE_SHOP_12H:,}đ\n📅 1 Ngày: {PRICE_SHOP_1D:,}đ | 📆 1 Tháng: {PRICE_SHOP_1M:,}đ"
         keyboard = [
@@ -254,16 +268,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("💳 Nạp thêm tiền", callback_data='menu_deposit')],
             [InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]
         ]
-        await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+        await edit_or_send(query, text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
     elif query.data.startswith('buy_'):
         key_type = query.data.split('_')[1]
         price_map = {'1h': (PRICE_SHOP_1H, kho_shop_1h), '12h': (PRICE_SHOP_12H, kho_shop_12h), '1d': (PRICE_SHOP_1D, kho_shop_1d), '1m': (PRICE_SHOP_1M, kho_shop_1m)}
         price, kho = price_map[key_type]
         if u['balance'] < price:
-            await query.message.edit_text("❌ <b>SỐ DƯ KHÔNG ĐỦ!</b>", parse_mode="HTML")
+            await edit_or_send(query, "❌ <b>SỐ DƯ KHÔNG ĐỦ!</b>", parse_mode="HTML")
             return
         if not kho:
-            await query.message.edit_text(f"❌ <b>KHO KEY {key_type.upper()} ĐÃ HẾT!</b>", parse_mode="HTML")
+            await edit_or_send(query, f"❌ <b>KHO KEY {key_type.upper()} ĐÃ HẾT!</b>", parse_mode="HTML")
             return
         u['balance'] -= price
         total_revenue += price
@@ -272,7 +286,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         u['history'].append(f"[{time_now}] Mua Key {key_type.upper()} (-{price:,}đ)")
         await notify_admin(context, f"User ID: <code>{user_id}</code> vừa mua Key {key_type.upper()} (+{price:,}đ)")
         text = f"✅ <b>MUA THÀNH CÔNG!</b>\n〰️〰️〰️〰️〰️〰️〰️〰️\n{key_nhan}\n〰️〰️〰️〰️〰️〰️〰️〰️\n💰 Số dư: <b>{u['balance']:,}đ</b>" + USER_SIGNATURE
-        await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🛒 Mua Tiếp", callback_data='menu_shop'), InlineKeyboardButton("⬅️ Về Menu", callback_data='back_menu')]]), parse_mode="HTML")
+        await edit_or_send(query, text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🛒 Mua Tiếp", callback_data='menu_shop'), InlineKeyboardButton("⬅️ Về Menu", callback_data='back_menu')]]), parse_mode="HTML")
     elif query.data == 'menu_deposit':
         add_info = f"NAP {user_id}"
         qr_url = f"https://img.vietqr.io/image/{BANK_ID}-{ACCOUNT_NO}-compact2.png?addInfo={add_info.replace(' ', '%20')}&accountName={ACCOUNT_NAME.replace(' ', '%20')}"
@@ -285,11 +299,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == 'menu_account':
         can_get, remaining = check_daily_limit(user_id)
         text = f"👤 <b>TÀI KHOẢN</b>\nID: <code>{user_id}</code>\nSố dư: <b>{u['balance']:,}đ</b>\nTổng nạp: <b>{u['total_deposit']:,}đ</b>\nLượt Free còn lại: <b>{remaining}/3</b>" + USER_SIGNATURE
-        await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]]), parse_mode="HTML")
+        await edit_or_send(query, text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]]), parse_mode="HTML")
     elif query.data == 'menu_history':
         hist = "\n".join(u['history'][-10:]) if u['history'] else "Chưa có giao dịch nào."
         text = f"🧾 <b>LỊCH SỬ GIAO DỊCH</b>\n{hist}" + USER_SIGNATURE
-        await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]]), parse_mode="HTML")
+        await edit_or_send(query, text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]]), parse_mode="HTML")
 
     # ADMIN PANEL
     elif query.data == 'admin_panel':
@@ -302,11 +316,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("🎲 Tạo Key Random", callback_data='admin_rand_menu'), InlineKeyboardButton("💸 Cộng tiền", callback_data='admin_add_balance')],
             [InlineKeyboardButton("📢 Gửi thông báo", callback_data='admin_broadcast'), InlineKeyboardButton("⬅️ Về Menu", callback_data='back_menu')]
         ]
-        await query.message.edit_text("🛡️ <b>BẢNG ĐIỀU KHIỂN ADMIN</b>", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+        await edit_or_send(query, "🛡️ <b>BẢNG ĐIỀU KHIỂN ADMIN</b>", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
     elif query.data == 'admin_stats':
         if user_id != ADMIN_ID: return
         text = f"📊 <b>THỐNG KÊ HỆ THỐNG</b>\n👥 Người dùng: <b>{len(all_users)}</b>\n💵 Doanh thu: <b>{total_revenue:,}đ</b>\n\n<b>FREE:</b> 1H: {len(kho_free_1h)} | 3H: {len(kho_free_3h)}\n<b>SHOP:</b> 1H: {len(kho_shop_1h)} | 12H: {len(kho_shop_12h)} | 1D: {len(kho_shop_1d)} | 1M: {len(kho_shop_1m)}"
-        await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='admin_panel')]]), parse_mode="HTML")
+        await edit_or_send(query, text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='admin_panel')]]), parse_mode="HTML")
     elif query.data == 'admin_toggle':
         if user_id != ADMIN_ID: return
         bot_status["active"] = not bot_status["active"]
@@ -314,31 +328,31 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == 'admin_add_balance':
         if user_id != ADMIN_ID: return
         admin_adding_state[user_id] = 'add_balance'
-        await query.message.edit_text("Nhập ID và Số tiền (VD: `7976468365 50000`):")
+        await edit_or_send(query, "Nhập ID và Số tiền (VD: `7976468365 50000`):")
     elif query.data == 'admin_broadcast':
         if user_id != ADMIN_ID: return
         admin_adding_state[user_id] = 'broadcast'
-        await query.message.edit_text("Nhập nội dung thông báo gửi toàn bộ người dùng:")
+        await edit_or_send(query, "Nhập nội dung thông báo gửi toàn bộ người dùng:")
     elif query.data == 'admin_add_free_menu':
         if user_id != ADMIN_ID: return
         keyboard = [[InlineKeyboardButton("Kho Free 1H", callback_data='add_free_1h'), InlineKeyboardButton("Kho Free 3H", callback_data='add_free_3h')], [InlineKeyboardButton("⬅️ Quay lại", callback_data='admin_panel')]]
-        await query.message.edit_text("Chọn kho Free:", reply_markup=InlineKeyboardMarkup(keyboard))
+        await edit_or_send(query, "Chọn kho Free:", reply_markup=InlineKeyboardMarkup(keyboard))
     elif query.data == 'admin_add_shop_menu':
         if user_id != ADMIN_ID: return
         keyboard = [[InlineKeyboardButton("Shop 1H", callback_data='add_shop_1h'), InlineKeyboardButton("Shop 12H", callback_data='add_shop_12h')], [InlineKeyboardButton("Shop 1D", callback_data='add_shop_1d'), InlineKeyboardButton("Shop 1M", callback_data='add_shop_1m')], [InlineKeyboardButton("⬅️ Quay lại", callback_data='admin_panel')]]
-        await query.message.edit_text("Chọn kho Shop:", reply_markup=InlineKeyboardMarkup(keyboard))
+        await edit_or_send(query, "Chọn kho Shop:", reply_markup=InlineKeyboardMarkup(keyboard))
     elif query.data.startswith('add_free_') or query.data.startswith('add_shop_'):
         if user_id != ADMIN_ID: return
         admin_adding_state[user_id] = f'add_{query.data.replace("add_", "")}'
-        await query.message.edit_text("📝 Hãy dán danh sách Key vào chat:")
+        await edit_or_send(query, "📝 Hãy dán danh sách Key vào chat:")
     elif query.data == 'admin_rand_menu':
         if user_id != ADMIN_ID: return
         keyboard = [[InlineKeyboardButton("Random 1H", callback_data='rand_free_1h'), InlineKeyboardButton("Random 3H", callback_data='rand_free_3h')], [InlineKeyboardButton("⬅️ Quay lại", callback_data='admin_panel')]]
-        await query.message.edit_text("Chọn kho tạo Key random:", reply_markup=InlineKeyboardMarkup(keyboard))
+        await edit_or_send(query, "Chọn kho tạo Key random:", reply_markup=InlineKeyboardMarkup(keyboard))
     elif query.data.startswith('rand_'):
         if user_id != ADMIN_ID: return
         admin_adding_state[user_id] = f'rand_{query.data.replace("rand_", "")}'
-        await query.message.edit_text("🎲 Nhập số lượng Key muốn tạo:")
+        await edit_or_send(query, "🎲 Nhập số lượng Key muốn tạo:")
 
 # 8. HÀM XỬ LÝ TEXT ADMIN
 async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
