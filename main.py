@@ -262,4 +262,9 @@ async def deliver_free_key(update: Update, context: ContextTypes.DEFAULT_TYPE, k
     else:
         key_nhan = kho.pop(0)
         set_cooldown(user_id, key_type)
-        add_daily_usage(user_
+        add_daily_usage(user_id)
+        
+        text = f"🎉 <b>VƯỢT LINK THÀNH CÔNG!</b> 🎉\n〰️〰️〰️〰️〰️〰️〰️〰️\n{key_nhan}\n〰️〰️〰️〰️〰️〰️〰️〰️\n⏳ <i>Chờ {key_type.upper()} để lấy tiếp.</i>" + USER_SIGNATURE
+        keyboard = [[InlineKeyboardButton("🛒 Mua thêm Key", callback_data='menu_shop'), InlineKeyboardButton("⬅️ Về Menu", callback_data='back_menu')]]
+        await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+    user_states[user_id] = {'type': None, 'step': 0, 'token': None}
