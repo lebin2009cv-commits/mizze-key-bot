@@ -1,11 +1,21 @@
 import requests
 import urllib.parse
+import secrets
+import string
 from config import LINK4M_API_KEY, YEUMONEY_API_KEY, SHRINKME_API_KEY
+
+def generate_token():
+    return secrets.token_hex(4)
+
+def generate_random_key(key_len=15):
+    alphabet = string.ascii_uppercase + string.digits
+    k = ''.join(secrets.choice(alphabet) for _ in range(key_len))
+    p = ''.join(secrets.choice(alphabet) for _ in range(key_len))
+    return f"<b>🔑 Key:</b> <code>{k}</code>\n<b>🔒 Mật khẩu:</b> <code>{p}</code>"
 
 def create_link4m(destination_url: str) -> str | None:
     try:
         api_url = "https://link4m.co/api-shorten/v2"
-        # Mã hóa URL để tránh lỗi ký tự đặc biệt
         encoded_url = urllib.parse.quote(destination_url, safe='')
         params = {"api": LINK4M_API_KEY, "url": encoded_url}
         res = requests.get(api_url, params=params, timeout=15)
