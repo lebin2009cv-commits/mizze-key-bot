@@ -4,14 +4,14 @@ from flask import Flask, request, jsonify
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "9120368691:AAE9J5NtmXqYBPiKmC7pJq_UKmjwlwny2sw")
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "9112215461:AAFDBZr4BEt5e5iSFW33AfpXd6iMrdPBaaM")
 BOT_USERNAME = "GetkeyMizzebot"
 ADMIN_ID = 7976468365
 
 USER_SIGNATURE = "\n\n────────────────────\n🤖 <i>Powered by Mizze Key Bot</i>"
 BANNER_URL = "https://files.catbox.moe/f01erm.jpeg"
 CHANNEL_URL = "https://t.me/mizze_store"
-ADMIN_CONTACT = "https://t.me/lebind"
+ADMIN_CONTACT = "https://t.me/lebindz"
 SUPPORT_CONTACT = "https://t.me/NTH_VIP"
 
 LINK4M_API_KEY = os.environ.get("LINK4M_API_KEY", "6a38ad422de39b3f34159f96")
