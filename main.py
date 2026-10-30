@@ -12,7 +12,7 @@ ADMIN_ID = 7976468365
 USER_SIGNATURE = "\n\n────────────────────\n🤖 <i>Powered by Mizze Key Bot</i>"
 BANNER_URL = "https://files.catbox.moe/f01erm.jpeg"
 CHANNEL_URL = "https://t.me/mizze_store"
-ADMIN_CONTACT = "https://t.me/lebind"
+ADMIN_CONTACT = "https://t.me/lebindz"
 SUPPORT_CONTACT = "https://t.me/NTH_VIP"
 
 LINK4M_API_KEY = os.environ.get("LINK4M_API_KEY", "6a38ad422de39b3f34159f96")
@@ -55,7 +55,6 @@ def add_daily_usage(user_id):
     if user_id in daily_limits:
         daily_limits[user_id]['count'] += 1
 
-# Hàm hỗ trợ hiển thị giao diện không bị lỗi ảnh
 async def edit_or_send(query, text, reply_markup=None, parse_mode="HTML"):
     try:
         if query.message.photo:
@@ -286,16 +285,36 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         u['history'].append(f"[{time_now}] Mua Key {key_type.upper()} (-{price:,}đ)")
         await notify_admin(context, f"User ID: <code>{user_id}</code> vừa mua Key {key_type.upper()} (+{price:,}đ)")
         text = f"✅ <b>MUA THÀNH CÔNG!</b>\n〰️〰️〰️〰️〰️〰️〰️〰️\n{key_nhan}\n〰️〰️〰️〰️〰️〰️〰️〰️\n💰 Số dư: <b>{u['balance']:,}đ</b>" + USER_SIGNATURE
-        await edit_or_send(query, text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🛒 Mua Tiếp", callback_data='menu_shop'), InlineKeyboardButton("⬅️ Về Menu", callback_data='back_menu')]]), parse_mode="HTML")
+        await edit_or_send(query, text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🛒 Mua Tiếp", callback_data='menu_shop'), InlineKeyboardButton("⬅️ Về Menu", callback_data='back_menu')]]))
     elif query.data == 'menu_deposit':
-        add_info = f"NAP {user_id}"
-        qr_url = f"https://img.vietqr.io/image/{BANK_ID}-{ACCOUNT_NO}-compact2.png?addInfo={add_info.replace(' ', '%20')}&accountName={ACCOUNT_NAME.replace(' ', '%20')}"
-        text = f"💳 <b>NẠP TIỀN TỰ ĐỘNG</b>\n🏦 Ngân hàng: {BANK_ID}\n🔢 STK: <code>{ACCOUNT_NO}</code>\n👤 Chủ TK: {ACCOUNT_NAME}\n📝 Nội dung CK: <code>{add_info}</code>"
-        try:
-            await query.message.delete()
-            await context.bot.send_photo(chat_id=user_id, photo=qr_url, caption=text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]]), parse_mode="HTML")
-        except Exception:
-            await context.bot.send_message(chat_id=user_id, text=text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]]), parse_mode="HTML")
+        # Giao diện chọn nhanh số tiền nạp hoặc tự nhập
+        text = (
+            "💳 <b>NẠP TIỀN TỰ ĐỘNG QUA MÃ QR</b> 💳\n"
+            "▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰▱▰\n"
+            "👉 Vui lòng chọn nhanh số tiền muốn nạp bên dưới hoặc bấm nút <b>'✏️ Nhập số tiền khác'</b>."
+        )
+        keyboard = [
+            [InlineKeyboardButton("50.000đ", callback_data='qr_50000'), InlineKeyboardButton("100.000đ", callback_data='qr_100000')],
+            [InlineKeyboardButton("200.000đ", callback_data='qr_200000'), InlineKeyboardButton("500.000đ", callback_data='qr_500000')],
+            [InlineKeyboardButton("✏️ Nhập số tiền khác", callback_data='qr_custom')],
+            [InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]
+        ]
+        await edit_or_send(query, text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+    elif query.data.startswith('qr_'):
+        sub = query.data.replace('qr_', '')
+        if sub == 'custom':
+            admin_adding_state[user_id] = 'waiting_deposit_amount'
+            await edit_or_send(query, "💬 Vui lòng nhập số tiền bạn muốn nạp (Ví dụ: `50000` hoặc `150000`):", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='menu_deposit')]]))
+            return
+        
+        amount = int(sub)
+        await send_dynamic_qr(query, context, user_id, amount)
+
+    elif query.data.startswith('check_pay_'):
+        amount = query.data.split('_')[2]
+        await query.answer("⏳ Hệ thống đang kiểm tra giao dịch với SePay, vui lòng đợi trong giây lát...", show_alert=True)
+        # SePay sẽ tự động gọi webhook khi nhận được tiền và cộng tiền vào tài khoản người dùng
+
     elif query.data == 'menu_account':
         can_get, remaining = check_daily_limit(user_id)
         text = f"👤 <b>TÀI KHOẢN</b>\nID: <code>{user_id}</code>\nSố dư: <b>{u['balance']:,}đ</b>\nTổng nạp: <b>{u['total_deposit']:,}đ</b>\nLượt Free còn lại: <b>{remaining}/3</b>" + USER_SIGNATURE
@@ -320,147 +339,4 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == 'admin_stats':
         if user_id != ADMIN_ID: return
         text = f"📊 <b>THỐNG KÊ HỆ THỐNG</b>\n👥 Người dùng: <b>{len(all_users)}</b>\n💵 Doanh thu: <b>{total_revenue:,}đ</b>\n\n<b>FREE:</b> 1H: {len(kho_free_1h)} | 3H: {len(kho_free_3h)}\n<b>SHOP:</b> 1H: {len(kho_shop_1h)} | 12H: {len(kho_shop_12h)} | 1D: {len(kho_shop_1d)} | 1M: {len(kho_shop_1m)}"
-        await edit_or_send(query, text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='admin_panel')]]), parse_mode="HTML")
-    elif query.data == 'admin_toggle':
-        if user_id != ADMIN_ID: return
-        bot_status["active"] = not bot_status["active"]
-        await button_handler(update, context)
-    elif query.data == 'admin_add_balance':
-        if user_id != ADMIN_ID: return
-        admin_adding_state[user_id] = 'add_balance'
-        await edit_or_send(query, "Nhập ID và Số tiền (VD: `7976468365 50000`):")
-    elif query.data == 'admin_broadcast':
-        if user_id != ADMIN_ID: return
-        admin_adding_state[user_id] = 'broadcast'
-        await edit_or_send(query, "Nhập nội dung thông báo gửi toàn bộ người dùng:")
-    elif query.data == 'admin_add_free_menu':
-        if user_id != ADMIN_ID: return
-        keyboard = [[InlineKeyboardButton("Kho Free 1H", callback_data='add_free_1h'), InlineKeyboardButton("Kho Free 3H", callback_data='add_free_3h')], [InlineKeyboardButton("⬅️ Quay lại", callback_data='admin_panel')]]
-        await edit_or_send(query, "Chọn kho Free:", reply_markup=InlineKeyboardMarkup(keyboard))
-    elif query.data == 'admin_add_shop_menu':
-        if user_id != ADMIN_ID: return
-        keyboard = [[InlineKeyboardButton("Shop 1H", callback_data='add_shop_1h'), InlineKeyboardButton("Shop 12H", callback_data='add_shop_12h')], [InlineKeyboardButton("Shop 1D", callback_data='add_shop_1d'), InlineKeyboardButton("Shop 1M", callback_data='add_shop_1m')], [InlineKeyboardButton("⬅️ Quay lại", callback_data='admin_panel')]]
-        await edit_or_send(query, "Chọn kho Shop:", reply_markup=InlineKeyboardMarkup(keyboard))
-    elif query.data.startswith('add_free_') or query.data.startswith('add_shop_'):
-        if user_id != ADMIN_ID: return
-        admin_adding_state[user_id] = f'add_{query.data.replace("add_", "")}'
-        await edit_or_send(query, "📝 Hãy dán danh sách Key vào chat:")
-    elif query.data == 'admin_rand_menu':
-        if user_id != ADMIN_ID: return
-        keyboard = [[InlineKeyboardButton("Random 1H", callback_data='rand_free_1h'), InlineKeyboardButton("Random 3H", callback_data='rand_free_3h')], [InlineKeyboardButton("⬅️ Quay lại", callback_data='admin_panel')]]
-        await edit_or_send(query, "Chọn kho tạo Key random:", reply_markup=InlineKeyboardMarkup(keyboard))
-    elif query.data.startswith('rand_'):
-        if user_id != ADMIN_ID: return
-        admin_adding_state[user_id] = f'rand_{query.data.replace("rand_", "")}'
-        await edit_or_send(query, "🎲 Nhập số lượng Key muốn tạo:")
-
-# 8. HÀM XỬ LÝ TEXT ADMIN
-async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    if user_id != ADMIN_ID or user_id not in admin_adding_state: return
-    state = admin_adding_state[user_id]
-    text = update.message.text
-
-    if state == 'add_balance':
-        try:
-            target_id, amount = text.split()
-            amount, target_id = int(amount), int(target_id)
-            u = get_user(target_id)
-            u['balance'] += amount
-            u['total_deposit'] += amount
-            time_now = datetime.datetime.now().strftime("%H:%M %d/%m")
-            u['history'].append(f"[{time_now}] Admin nạp (+{amount:,}đ)")
-            await update.message.reply_text(f"✅ Đã cộng {amount:,}đ cho ID {target_id}.")
-            try: await context.bot.send_message(target_id, f"💰 Bạn được Admin cộng {amount:,}đ vào ví!")
-            except: pass
-        except: await update.message.reply_text("❌ Sai cú pháp.")
-        del admin_adding_state[user_id]
-    elif state == 'broadcast':
-        await update.message.reply_text("⏳ Đang gửi thông báo...")
-        success = 0
-        for uid in list(all_users):
-            try:
-                await context.bot.send_message(uid, f"📢 <b>THÔNG BÁO TỪ ADMIN</b>\n\n{html.escape(text)}", parse_mode="HTML")
-                success += 1
-                await asyncio.sleep(0.05)
-            except: pass
-        await update.message.reply_text(f"✅ Đã gửi đến {success} người dùng.")
-        del admin_adding_state[user_id]
-    elif state.startswith('add_'):
-        target_map = {'add_free_1h': kho_free_1h, 'add_free_3h': kho_free_3h, 'add_shop_1h': kho_shop_1h, 'add_shop_12h': kho_shop_12h, 'add_shop_1d': kho_shop_1d, 'add_shop_1m': kho_shop_1m}
-        target_list = target_map.get(state)
-        if not target_list: return
-        matches = re.findall(r"Key:\s*([^\n]+)\s*\n.*?Mật khẩu:\s*([^\n]+)", text, re.IGNORECASE)
-        added = 0
-        if matches:
-            for k, p in matches:
-                target_list.append(f"<b>🔑 Key:</b> <code>{html.escape(k.strip())}</code>\n<b>🔒 Mật khẩu:</b> <span class='tg-spoiler'>{html.escape(p.strip())}</span>")
-                added += 1
-        else:
-            for block in text.split('\n\n'):
-                if block.strip():
-                    target_list.append(html.escape(block.strip()))
-                    added += 1
-        await update.message.reply_text(f"✅ Đã thêm {added} Key!")
-        del admin_adding_state[user_id]
-    elif state.startswith('rand_'):
-        target_list = kho_free_1h if state == 'rand_free_1h' else kho_free_3h
-        try:
-            sl = int(text.strip())
-            for _ in range(sl): target_list.append(generate_random_key())
-            await update.message.reply_text(f"✅ Đã tạo {sl} Key Random!")
-        except: await update.message.reply_text("❌ Nhập số hợp lệ.")
-        del admin_adding_state[user_id]
-
-# 9. FLASK & WEBHOOK
-flask_app = Flask(__name__)
-
-@flask_app.route('/')
-def health_check(): return "Bot is running!", 200
-
-@flask_app.route('/sepay_webhook', methods=['POST'])
-def sepay_webhook():
-    if request.headers.get('Authorization') != f"Apikey {SEPAY_API_KEY}":
-        return jsonify({"success": False}), 401
-    data = request.json
-    if not data or data.get("transferType") != "in": return jsonify({"success": True}), 200
-
-    content = data.get("content", "")
-    amount = int(data.get("transferAmount", 0))
-    match = re.search(r"NAP\s+(\d+)", content, re.IGNORECASE)
-    if match:
-        target_id = int(match.group(1))
-        u = get_user(target_id)
-        u['balance'] += amount
-        u['total_deposit'] += amount
-        time_now = datetime.datetime.now().strftime("%H:%M %d/%m")
-        u['history'].append(f"[{time_now}] SePay Auto (+{amount:,}đ)")
-        try:
-            msg = f"✅ <b>NẠP TIỀN THÀNH CÔNG!</b>\nSố tiền: <b>+{amount:,}đ</b>\nSố dư mới: <b>{u['balance']:,}đ</b>"
-            httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": target_id, "text": msg, "parse_mode": "HTML"})
-        except Exception as e: logger.error(f"Lỗi Webhook: {e}")
-
-    return jsonify({"success": True}), 200
-
-def run_flask():
-    flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-
-# 10. CHẠY BOT
-async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-    logger.error(msg="Exception in bot:", exc_info=context.error)
-    try:
-        await context.bot.send_message(chat_id=ADMIN_ID, text=f"⚠️ <b>LỖI HỆ THỐNG BOT</b>\n<code>{html.escape(str(context.error)[:3500])}</code>", parse_mode="HTML")
-    except: pass
-
-def main():
-    threading.Thread(target=run_flask, daemon=True).start()
-    app = Application.builder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_handler))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_admin_text))
-    app.add_error_handler(error_handler)
-    logger.info("Bot đang chạy...")
-    app.run_polling(drop_pending_updates=True)
-
-if __name__ == '__main__':
-    main()
+        await edit_or_send(query, text, reply_markup=Inline
