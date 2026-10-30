@@ -1,4 +1,4 @@
-import os, logging, threading, httpx, re, secrets, string, time, asyncio, html, datetime
+import os, logging, threading, httpx, re, secrets, string, time, html, datetime
 from urllib.parse import quote
 from flask import Flask, request, jsonify
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -25,7 +25,7 @@ SEPAY_API_KEY = os.environ.get("SEPAY_API_KEY", "botgetkey_sepay")
 
 PRICE_1H, PRICE_12H, PRICE_1D, PRICE_1M = 10000, 20000, 70000, 150000
 
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 kho_free_1h, kho_free_3h = [], []
@@ -62,7 +62,7 @@ async def edit_or_send(query, text, reply_markup=None):
 async def shorten_link4m(url):
     try:
         async with httpx.AsyncClient() as c:
-            r = await c.get(f"https://link4m.co/api-shorten/v2?api={LINK4M_API_KEY}&url={quote(url, safe='')}", timeout=10)
+            r = await c.get("https://link4m.co/api-shorten/v2?api=" + LINK4M_API_KEY + "&url=" + quote(url, safe=''), timeout=10)
             if r.json().get("status") == "success": return r.json().get("shortenedUrl").strip()
     except: pass
     return None
@@ -70,7 +70,7 @@ async def shorten_link4m(url):
 async def shorten_yeumoney(url):
     try:
         async with httpx.AsyncClient() as c:
-            r = await c.get(f"https://yeumoney.com/QL_api.php?token={YEUMONEY_API_KEY}&url={quote(url, safe='')}&format=json", timeout=10)
+            r = await c.get("https://yeumoney.com/QL_api.php?token=" + YEUMONEY_API_KEY + "&url=" + quote(url, safe='') + "&format=json", timeout=10)
             if r.json().get("status") == "success": return r.json().get("shortenedUrl").strip()
     except: pass
     return None
@@ -78,13 +78,13 @@ async def shorten_yeumoney(url):
 async def shorten_shrinkme(url):
     try:
         async with httpx.AsyncClient() as c:
-            r = await c.get(f"https://shrinkme.io/api?api={SHRINKME_API_KEY}&url={quote(url, safe='')}", timeout=10)
+            r = await c.get("https://shrinkme.io/api?api=" + SHRINKME_API_KEY + "&url=" + quote(url, safe=''), timeout=10)
             if r.json().get("status") == "success": return r.json().get("shortenedUrl").strip()
     except: pass
     return None
 
 async def notify_admin(context, msg):
-    try: await context.bot.send_message(chat_id=ADMIN_ID, text=f"🔔 <b>ADMIN</b>\n\n{msg}" + USER_SIGNATURE, parse_mode="HTML")
+    try: await context.bot.send_message(chat_id=ADMIN_ID, text="🔔 <b>ADMIN</b>\n\n" + msg + USER_SIGNATURE, parse_mode="HTML")
     except: pass
 
 async def show_main_menu(update, context):
@@ -97,7 +97,7 @@ async def show_main_menu(update, context):
 
     u = get_user(uid)
     _, rem = check_daily_limit(uid)
-    text = f"🏪 <b>MIZZE KEY VIP</b>\n\n📢 <b>Kênh:</b> {CHANNEL_URL}\n👮‍♂️ <b>Admin:</b> {ADMIN_CONTACT}\n〰️〰️〰️〰️〰️〰️〰️〰️\n💸 <b>Tổng nạp:</b> {u['total_deposit']:,}đ\n💰 <b>Số dư:</b> {u['balance']:,}đ\n🎁 <b>Free hôm nay:</b> {rem}/3\n" + USER_SIGNATURE
+    text = "🏪 <b>MIZZE KEY VIP</b>\n\n📢 <b>Kênh:</b> " + CHANNEL_URL + "\n👮‍♂️ <b>Admin:</b> " + ADMIN_CONTACT + "\n〰️〰️〰️〰️〰️〰️〰️〰️\n💸 <b>Tổng nạp:</b> " + f"{u['total_deposit']:,}" + "đ\n💰 <b>Số dư:</b> " + f"{u['balance']:,}" + "đ\n🎁 <b>Free hôm nay:</b> " + str(rem) + "/3" + USER_SIGNATURE
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("🔑 LẤY KEY (MIỄN PHÍ)", callback_data='menu_getkey')],
         [InlineKeyboardButton("🛒 Cửa hàng", callback_data='menu_shop'), InlineKeyboardButton("💳 Nạp tiền", callback_data='menu_deposit')],
@@ -132,7 +132,7 @@ async def start(update, context):
                     if step == 1:
                         t = secrets.token_hex(4)
                         st['token'] = t
-                        u = await shorten_yeumoney(f"https://t.me/{BOT_USERNAME}?start=1h_step2_{t}")
+                        u = await shorten_yeumoney("https://t.me/" + BOT_USERNAME + "?start=1h_step2_" + t)
                         await update.message.reply_text("🔄 <b>Tiến trình 2/2 (YeuMoney)</b>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚀 VƯỢT LINK", url=u)]]), parse_mode="HTML")
                     elif step == 2:
                         if kho_free_1h:
@@ -140,7 +140,7 @@ async def start(update, context):
                             cooldowns[uid] = cooldowns.get(uid, {})
                             cooldowns[uid]['1h'] = time.time() + 3600
                             add_daily_usage(uid)
-                            await update.message.reply_text(f"🎉 <b>Thành công!</b>\n{k}" + USER_SIGNATURE, parse_mode="HTML")
+                            await update.message.reply_text("🎉 <b>Thành công!</b>\n" + k + USER_SIGNATURE, parse_mode="HTML")
                         else: await update.message.reply_text("❌ Kho Key 1H đã cạn!", parse_mode="HTML")
                         st.update({'type': None, 'step': 0, 'token': None})
                 elif kt == "3h":
@@ -148,15 +148,15 @@ async def start(update, context):
                         t = secrets.token_hex(4)
                         st['token'] = t
                         prov = shorten_shrinkme if step in [1, 3] else shorten_link4m
-                        u = await prov(f"https://t.me/{BOT_USERNAME}?start=3h_step{step+1}_{t}")
-                        await update.message.reply_text(f"🔄 <b>Tiến trình {step+1}/4</b>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚀 VƯỢT LINK", url=u)]]), parse_mode="HTML")
+                        u = await prov("https://t.me/" + BOT_USERNAME + "?start=3h_step" + str(step+1) + "_" + t)
+                        await update.message.reply_text("🔄 <b>Tiến trình " + str(step+1) + "/4</b>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚀 VƯỢT LINK", url=u)]]), parse_mode="HTML")
                     elif step == 4:
                         if kho_free_3h:
                             k = kho_free_3h.pop(0)
                             cooldowns[uid] = cooldowns.get(uid, {})
                             cooldowns[uid]['3h'] = time.time() + 10800
                             add_daily_usage(uid)
-                            await update.message.reply_text(f"🎉 <b>Thành công!</b>\n{k}" + USER_SIGNATURE, parse_mode="HTML")
+                            await update.message.reply_text("🎉 <b>Thành công!</b>\n" + k + USER_SIGNATURE, parse_mode="HTML")
                         else: await update.message.reply_text("❌ Kho Key 3H đã cạn!", parse_mode="HTML")
                         st.update({'type': None, 'step': 0, 'token': None})
             return
@@ -179,7 +179,7 @@ async def button_handler(update, context):
         if not ok:
             await edit_or_send(query, "🚫 <b>Đã hết 3 lượt miễn phí hôm nay!</b>")
             return
-        await edit_or_send(query, f"👇 Còn <b>{rem}/3</b> lượt. Chọn loại:", InlineKeyboardMarkup([
+        await edit_or_send(query, "👇 Còn <b>" + str(rem) + "/3</b> lượt. Chọn loại:", InlineKeyboardMarkup([
             [InlineKeyboardButton("🔑 KEY 1H", callback_data='get_1h')],
             [InlineKeyboardButton("💎 KEY 3H", callback_data='get_3h')],
             [InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]
@@ -188,7 +188,7 @@ async def button_handler(update, context):
         kt = data.split('_')[1]
         t = secrets.token_hex(4)
         user_states[uid] = {'type': kt, 'step': 0, 'token': t}
-        url = await (shorten_yeumoney if kt == '1h' else shorten_link4m)(f"https://t.me/{BOT_USERNAME}?start={kt}_step1_{t}")
+        url = await (shorten_yeumoney if kt == '1h' else shorten_link4m)("https://t.me/" + BOT_USERNAME + "?start=" + kt + "_step1_" + t)
         await edit_or_send(query, "🔄 <b>Tiến trình 1</b>", InlineKeyboardMarkup([[InlineKeyboardButton("🚀 VƯỢT LINK", url=url)]]))
     elif data == 'menu_shop':
         kb = InlineKeyboardMarkup([
@@ -196,7 +196,7 @@ async def button_handler(update, context):
             [InlineKeyboardButton("Mua 1 Ngày", callback_data='buy_1d'), InlineKeyboardButton("Mua 1 Tháng", callback_data='buy_1m')],
             [InlineKeyboardButton("💳 Nạp tiền", callback_data='menu_deposit'), InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]
         ])
-        await edit_or_send(query, f"🛒 <b>CỬA HÀNG</b>\n💰 Số dư: <b>{u['balance']:,}đ</b>", kb)
+        await edit_or_send(query, "🛒 <b>CỬA HÀNG</b>\n💰 Số dư: <b>" + f"{u['balance']:,}" + "đ</b>", kb)
     elif data.startswith('buy_'):
         kt = data.split('_')[1]
         p_map = {'1h': (PRICE_1H, kho_shop_1h), '12h': (PRICE_12H, kho_shop_12h), '1d': (PRICE_1D, kho_shop_1d), '1m': (PRICE_1M, kho_shop_1m)}
@@ -205,14 +205,14 @@ async def button_handler(update, context):
             await edit_or_send(query, "❌ <b>Số dư không đủ!</b>")
             return
         if not kho:
-            await edit_or_send(query, f"❌ <b>Kho Key {kt.upper()} đã hết!</b>")
+            await edit_or_send(query, "❌ <b>Kho Key " + kt.upper() + " đã hết!</b>")
             return
         u['balance'] -= price
         total_revenue += price
         key_nhan = kho.pop(0)
-        u['history'].append(f"Mua {kt.upper()} (-{price:,}đ)")
-        await notify_admin(context, f"User <code>{uid}</code> mua Key {kt.upper()} (+{price:,}đ)")
-        await edit_or_send(query, f"✅ <b>Thành công!</b>\n{key_nhan}\n💰 Còn: <b>{u['balance']:,}đ</b>", InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Menu", callback_data='back_menu')]]))
+        u['history'].append("Mua " + kt.upper() + " (-" + f"{price:,}" + "đ)")
+        await notify_admin(context, "User <code>" + str(uid) + "</code> mua Key " + kt.upper() + " (+" + f"{price:,}" + "đ)")
+        await edit_or_send(query, "✅ <b>Thành công!</b>\n" + key_nhan + "\n💰 Còn: <b>" + f"{u['balance']:,}" + "đ</b>", InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Menu", callback_data='back_menu')]]))
     elif data == 'menu_deposit':
         await edit_or_send(query, "💳 <b>Chọn mức nạp:</b>", InlineKeyboardMarkup([
             [InlineKeyboardButton("50.000đ", callback_data='qr_50000'), InlineKeyboardButton("100.000đ", callback_data='qr_100000')],
@@ -230,10 +230,10 @@ async def button_handler(update, context):
         await query.answer("⏳ Đang kiểm tra giao dịch với SePay...", show_alert=True)
     elif data == 'menu_account':
         _, rem = check_daily_limit(uid)
-        await edit_or_send(query, f"👤 ID: <code>{uid}</code>\nVí: <b>{u['balance']:,}đ</b>\nTổng nạp: <b>{u['total_deposit']:,}đ</b>\nFree: {rem}/3", InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]]))
+        await edit_or_send(query, "👤 ID: <code>" + str(uid) + "</code>\nVí: <b>" + f"{u['balance']:,}" + "đ</b>\nTổng nạp: <b>" + f"{u['total_deposit']:,}" + "đ</b>\nFree: " + str(rem) + "/3", InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]]))
     elif data == 'menu_history':
         hist = "\n".join(u['history'][-10:]) if u['history'] else "Trống."
-        await edit_or_send(query, f"🧾 <b>Lịch sử:</b>\n{hist}", InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]]))
+        await edit_or_send(query, "🧾 <b>Lịch sử:</b>\n" + hist, InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Quay lại", callback_data='back_menu')]]))
     elif data == 'admin_panel' and uid == ADMIN_ID:
         await edit_or_send(query, "🛡️ <b>ADMIN PANEL</b>", InlineKeyboardMarkup([
             [InlineKeyboardButton("📊 Thống kê", callback_data='ad_stats'), InlineKeyboardButton("💸 Cộng tiền", callback_data='ad_bal')],
@@ -241,7 +241,7 @@ async def button_handler(update, context):
             [InlineKeyboardButton("⬅️ Menu", callback_data='back_menu')]
         ]))
     elif data == 'ad_stats' and uid == ADMIN_ID:
-        await edit_or_send(query, f"📊 Users: {len(all_users)} | Doanh thu: {total_revenue:,}đ\nFree 1H: {len(kho_free_1h)} | 3H: {len(kho_free_3h)}", InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Admin", callback_data='admin_panel')]]))
+        await edit_or_send(query, "📊 Users: " + str(len(all_users)) + " | Doanh thu: " + f"{total_revenue:,}" + "đ\nFree 1H: " + str(len(kho_free_1h)) + " | 3H: " + str(len(kho_free_3h)), InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Admin", callback_data='admin_panel')]]))
     elif data == 'ad_bal' and uid == ADMIN_ID:
         admin_adding_state[uid] = 'add_bal'
         await edit_or_send(query, "Nhập ID và số tiền (VD: `7976468365 50000`):")
@@ -255,9 +255,102 @@ async def button_handler(update, context):
             [InlineKeyboardButton("⬅️ Admin", callback_data='admin_panel')]
         ]))
     elif data.startswith('k_') and uid == ADMIN_ID:
-        admin_adding_state[uid] = f"addk_{data.replace('k_', '')}"
+        admin_adding_state[uid] = "addk_" + data.replace('k_', '')
         await edit_or_send(query, "📝 Dán danh sách Key vào đây:")
 
 async def send_qr(query, context, uid, amount):
-    add_info = f"NAP {uid}"
-    url = f"
+    add_info = "NAP " + str(uid)
+    url = "https://img.vietqr.io/image/" + BANK_ID + "-" + ACCOUNT_NO + "-compact2.png?amount=" + str(amount) + "&addInfo=" + quote(add_info) + "&accountName=" + quote(ACCOUNT_NAME)
+    text = "💳 <b>QR NẠP TIỀN</b>\n🏦 " + BANK_ID + " - STK: <code>" + ACCOUNT_NO + "</code>\n💵 Số tiền: <b>" + f"{amount:,}" + "đ</b>\n📝 Nội dung: <code>" + add_info + "</code>"
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("✅ ĐÃ CHUYỂN KHOẢN", callback_data="check_pay_" + str(amount))],
+        [InlineKeyboardButton("⬅️ Quay lại", callback_data='menu_deposit')]
+    ])
+    try:
+        await query.message.delete()
+        await context.bot.send_photo(chat_id=uid, photo=url, caption=text, reply_markup=kb, parse_mode="HTML")
+    except:
+        await context.bot.send_message(chat_id=uid, text=text, reply_markup=kb, parse_mode="HTML")
+
+async def handle_admin_text(update, context):
+    uid = update.message.from_user.id
+    if uid not in admin_adding_state: return
+    state = admin_adding_state[uid]
+    text = update.message.text
+
+    if state == 'waiting_deposit':
+        del admin_adding_state[uid]
+        try:
+            amt = int(text.replace(".", "").strip())
+            add_info = "NAP " + str(uid)
+            url = "https://img.vietqr.io/image/" + BANK_ID + "-" + ACCOUNT_NO + "-compact2.png?amount=" + str(amt) + "&addInfo=" + quote(add_info) + "&accountName=" + quote(ACCOUNT_NAME)
+            kb = InlineKeyboardMarkup([[InlineKeyboardButton("✅ ĐÃ CK", callback_data="check_pay_" + str(amt))], [InlineKeyboardButton("⬅️ Menu", callback_data='back_menu')]])
+            await update.message.reply_photo(photo=url, caption="💳 QR nạp " + f"{amt:,}" + "đ\nNội dung: <code>" + add_info + "</code>", reply_markup=kb, parse_mode="HTML")
+        except: await update.message.reply_text("❌ Số tiền không hợp lệ.")
+        return
+
+    if uid != ADMIN_ID: return
+
+    if state == 'add_bal':
+        try:
+            tid, amt = text.split()
+            tid, amt = int(tid), int(amt)
+            u = get_user(tid)
+            u['balance'] += amt
+            u['total_deposit'] += amt
+            u['history'].append("Admin cộng (+" + f"{amt:,}" + "đ)")
+            await update.message.reply_text("✅ Đã cộng " + f"{amt:,}" + "đ cho " + str(tid))
+            try: await context.bot.send_message(tid, "💰 Bạn được cộng " + f"{amt:,}" + "đ!")
+            except: pass
+        except: await update.message.reply_text("❌ Sai cú pháp.")
+        del admin_adding_state[uid]
+    elif state == 'bc':
+        del admin_adding_state[uid]
+        for u in list(all_users):
+            try: await context.bot.send_message(u, "📢 <b>THÔNG BÁO</b>\n\n" + html.escape(text), parse_mode="HTML")
+            except: pass
+        await update.message.reply_text("✅ Đã gửi xong.")
+    elif state.startswith('addk_'):
+        k_type = state.replace('addk_', '')
+        m_map = {'f1h': kho_free_1h, 'f3h': kho_free_3h, 's1h': kho_shop_1h, 's12h': kho_shop_12h}
+        target = m_map.get(k_type)
+        if target is not None:
+            for b in text.split('\n\n'):
+                if b.strip(): target.append(html.escape(b.strip()))
+            await update.message.reply_text("✅ Đã thêm Key vào kho " + k_type + "!")
+        del admin_adding_state[uid]
+
+flask_app = Flask(__name__)
+@flask_app.route('/')
+def home(): return "OK", 200
+
+@flask_app.route('/sepay_webhook', methods=['POST'])
+def sepay():
+    if request.headers.get('Authorization') != "Apikey " + SEPAY_API_KEY: return jsonify({"success": False}), 401
+    data = request.json
+    if data and data.get("transferType") == "in":
+        m = re.search(r"NAP\s+(\d+)", data.get("content", ""), re.IGNORECASE)
+        if m:
+            tid = int(m.group(1))
+            amt = int(data.get("transferAmount", 0))
+            u = get_user(tid)
+            u['balance'] += amt
+            u['total_deposit'] += amt
+            u['history'].append("SePay (+" + f"{amt:,}" + "đ)")
+            try:
+                httpx.post("https://api.telegram.org/bot" + BOT_TOKEN + "/sendMessage", json={"chat_id": tid, "text": "✅ <b>NẠP THÀNH CÔNG!</b>\n+" + f"{amt:,}" + "đ\nSố dư: <b>" + f"{u['balance']:,}" + "đ</b>", "parse_mode": "HTML"})
+            except: pass
+    return jsonify({"success": True}), 200
+
+def run_flask(): flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+
+def main():
+    threading.Thread(target=run_flask, daemon=True).start()
+    app = Application.builder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_admin_text))
+    app.run_polling(drop_pending_updates=True)
+
+if __name__ == '__main__':
+    main()
