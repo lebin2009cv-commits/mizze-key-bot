@@ -6,7 +6,10 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "9112215461:AAFDBZr4BEt5e5iSFW33AfpXd6iMrdPBaaM")
 BOT_USERNAME = "GetkeyMizzebot"
+
+# Danh sách Admin chính và danh sách Admin phụ được phân quyền động
 ADMIN_ID = 7976468365
+admin_list = {ADMIN_ID}
 
 SIGNATURE = "\n\n━━━━━━━━━━━━━━━━━━━\n💎 <b>MIZZE STORE - PREMIUM SERVICE</b>"
 BANNER_URL = "https://files.catbox.moe/f01erm.jpeg"
@@ -36,6 +39,9 @@ bot_active, total_rev = True, 0
 def get_u(uid):
     if uid not in user_data: user_data[uid] = {'balance': 0, 'total_deposit': 0, 'history': []}
     return user_data[uid]
+
+def is_admin(uid):
+    return uid in admin_list
 
 def check_lim(uid):
     today = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -67,9 +73,12 @@ async def get_link(api_type, url):
     except: pass
     return None
 
-async def notify_ad(context, msg):
-    try: await context.bot.send_message(chat_id=ADMIN_ID, text="⚡ <b>[ADMIN NOTIFICATION]</b>\n\n" + msg + SIGNATURE, parse_mode="HTML")
-    except: pass
+async def notify_all_admins(context, msg):
+    for adm in list(admin_list):
+        try:
+            await context.bot.send_message(chat_id=adm, text="⚡ <b>[THÔNG BÁO QUẢN TRỊ]</b>\n\n" + msg + SIGNATURE, parse_mode="HTML")
+        except:
+            pass
 
 async def broadcast_all(context, msg):
     for u in list(users):
@@ -78,7 +87,7 @@ async def broadcast_all(context, msg):
 
 async def show_main_menu(update, context):
     uid = update.effective_user.id
-    if not bot_active and uid != ADMIN_ID:
+    if not bot_active and not is_admin(uid):
         text = "🚧 <b>HỆ THỐNG ĐANG BẢO TRÌ NÂNG CẤP</b> 🚧" + SIGNATURE
         if update.message: await update.message.reply_text(text, parse_mode="HTML")
         elif update.callback_query: await update.callback_query.message.edit_text(text, parse_mode="HTML")
@@ -130,7 +139,6 @@ async def start(update, context):
             token = parts[2] if len(parts) > 2 else None
             st = states[uid]
             
-            # --- CHỐNG TRỪ VIEW & CHỐNG GIAN LẬN THỜI GIAN ---
             current_time = time.time()
             if st['time'] > 0 and (current_time - st['time'] < 6):
                 await update.message.reply_text(f"⚠️ <b>[CẢNH BÁO] Phát hiện thao tác quá nhanh! View quảng cáo không được tính. Vui lòng thử lại thong thả hơn.</b>{SIGNATURE}", parse_mode="HTML")
@@ -142,7 +150,6 @@ async def start(update, context):
                 st['token'] = t
                 st['time'] = time.time()
                 
-                # --- KEY 1H (3 BƯỚC: Link4m -> ShrinkMe -> Link4m) ---
                 if kt == "1h":
                     if not f_1h:
                         await update.message.reply_text(f"❌ <b>Kho Key Free 1H hiện đã tạm hết! Vui lòng chờ Admin cấp thêm kho mới.</b>{SIGNATURE}", parse_mode="HTML")
@@ -160,11 +167,10 @@ async def start(update, context):
                             add_lim(uid)
                             key_display = f"<code>{k}</code>" if "KEY" in k.upper() else f"<pre>{k}</pre>"
                             await update.message.reply_text(f"🎉 <b>CHÚC MỪNG! VƯỢT LINK THÀNH CÔNG</b>\n\n👇 <b>Sao chép mã Key của bạn bên dưới:</b>\n{key_display}{SIGNATURE}", parse_mode="HTML")
-                            await notify_ad(context, f"User <code>{uid}</code> nhận thành công <b>Key Free 1H</b>. Kho còn lại: <code>{len(f_1h)}</code>")
+                            await notify_all_admins(context, f"User <code>{uid}</code> nhận thành công <b>Key Free 1H</b>. Kho còn lại: <code>{len(f_1h)}</code>")
                         else: await update.message.reply_text(f"❌ <b>Kho Key 1H đã hết!</b>{SIGNATURE}", parse_mode="HTML")
                         st.update({'type': None, 'step': 0, 'token': None, 'time': 0})
                 
-                # --- KEY 3H FREE (4 BƯỚC: ShrinkMe -> Link4m -> ShrinkMe -> Link4m) ---
                 elif kt == "3hfree":
                     if not f_3h_free:
                         await update.message.reply_text(f"❌ <b>Kho Key Free 3H hiện đã tạm hết! Vui lòng chờ Admin cấp thêm kho mới.</b>{SIGNATURE}", parse_mode="HTML")
@@ -185,7 +191,7 @@ async def start(update, context):
                             add_lim(uid)
                             key_display = f"<code>{k}</code>" if "KEY" in k.upper() else f"<pre>{k}</pre>"
                             await update.message.reply_text(f"🎉 <b>CHÚC MỪNG! VƯỢT LINK THÀNH CÔNG</b>\n\n👇 <b>Sao chép mã Key của bạn bên dưới:</b>\n{key_display}{SIGNATURE}", parse_mode="HTML")
-                            await notify_ad(context, f"User <code>{uid}</code> nhận thành công <b>Key Free 3H</b>. Kho còn lại: <code>{len(f_3h_free)}</code>")
+                            await notify_all_admins(context, f"User <code>{uid}</code> nhận thành công <b>Key Free 3H</b>. Kho còn lại: <code>{len(f_3h_free)}</code>")
                         else: await update.message.reply_text(f"❌ <b>Kho Key 3H đã hết!</b>{SIGNATURE}", parse_mode="HTML")
                         st.update({'type': None, 'step': 0, 'token': None, 'time': 0})
             else:
@@ -256,7 +262,7 @@ async def button_handler(update, context):
         u['balance'] -= price; total_rev += price
         k_nhan = kho.pop(0)
         u['history'].append(f"Mua {kt.upper()} (-{price:,}đ)")
-        await notify_ad(context, f"User <code>{uid}</code> vừa mua thành công gói <b>{kt.upper()}</b> với giá <b>{price:,}đ</b>. Kho còn lại: <code>{len(kho)}</code>")
+        await notify_all_admins(context, f"User <code>{uid}</code> vừa mua thành công gói <b>{kt.upper()}</b> với giá <b>{price:,}đ</b>. Kho còn lại: <code>{len(kho)}</code>")
         
         key_display = f"<code>{k_nhan}</code>" if "KEY" in k_nhan.upper() else f"<pre>{k_nhan}</pre>"
         await edit_or_send(query, f"✅ <b>GIAO DỊCH THÀNH CÔNG!</b>\n━━━━━━━━━━━━━━━━━━━\n📦 Gói: <b>{kt.upper()}</b> | Trừ ví: <code>-{price:,}đ</code>\n\n👇 <b>Sao chép mã Key bên dưới:</b>\n{key_display}\n━━━━━━━━━━━━━━━━━━━\n💎 Số dư ví còn lại: <b>{u['balance']:,}đ</b>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("🛒 Mua Thêm Gói Khác", callback_data='menu_shop'), InlineKeyboardButton("🏠 Về Menu Chính", callback_data='back_menu')]]))
@@ -275,36 +281,95 @@ async def button_handler(update, context):
             return
         await send_qr(query, context, uid, int(sub))
     elif data.startswith('check_pay_'):
-        await query.answer("🔄 Đang đồng bộ giao dịch từ SePay...", show_alert=True)
-        await edit_or_send(query, f"💳 <b>TRẠNG THÁI VÍ TIỀN HIỆN TẠI</b>\n━━━━━━━━━━━━━━━━━━━\n💎 Số dư ví: <b>{u['balance']:,}đ</b>\n\n<i>💡 Hệ thống SePay sẽ tự động quét biến động số dư và cộng tiền vào ví trong vòng vài giây sau khi bạn chuyển khoản thành công!</i>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("🔄 Kiểm Tra Lại Số Dư", callback_data=query.data), InlineKeyboardButton("🏠 Về Menu Chính", callback_data='back_menu')]]))
+        amt = int(data.replace('check_pay_', ''))
+        await query.answer("📩 Đã gửi yêu cầu xác nhận nạp tiền đến toàn bộ Admin!", show_alert=True)
+        
+        # Gửi thông báo yêu cầu nạp tiền kèm nút duyệt đến TẤT CẢ các Admin trong hệ thống
+        admin_msg = (
+            f"🔔 <b>CÓ YÊU CẦU NẠP TIỀN MỚI CẦN DUYỆT!</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━\n"
+            f"👤 User: <code>{query.from_user.full_name}</code> (ID: <code>{uid}</code>)\n"
+            f"💵 Số tiền: <b>{amt:,}đ</b>\n"
+            f"📝 Nội dung CK: <code>NAP {uid}</code>\n"
+            f"━━━━━━━━━━━━━━━━━━━\n"
+            f"👉 <i>Kiểm tra tài khoản ngân hàng và bấm nút bên dưới để cộng tiền cho khách!</i>"
+        )
+        admin_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"✅ Duyệt +{amt:,}đ", callback_data=f"approve_{uid}_{amt}"),
+             InlineKeyboardButton("❌ Từ chối", callback_data=f"reject_{uid}")]
+        ])
+        
+        for adm in list(admin_list):
+            try:
+                await context.bot.send_message(chat_id=adm, text=admin_msg, reply_markup=admin_kb, parse_mode="HTML")
+            except:
+                pass
+
+        await edit_or_send(query, f"⏳ <b>ĐÃ GỬI YÊU CẦU ĐẾN ADMIN!</b>\n━━━━━━━━━━━━━━━━━━━\n💵 Mức nạp: <b>{amt:,}đ</b>\n📝 Nội dung: <code>NAP {uid}</code>\n\n<i>Yêu cầu của bạn đã được chuyển đến bộ phận Quản Trị. Số dư sẽ được cộng vào ví ngay sau khi Admin xác nhận!</i>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Về Menu Chính", callback_data='back_menu')]]))
+    
+    elif data.startswith('approve_') and is_admin(uid):
+        parts = data.split('_')
+        target_uid = int(parts[1])
+        amt = int(parts[2])
+        
+        target_u = get_u(target_uid)
+        target_u['balance'] += amt
+        target_u['total_deposit'] += amt
+        target_u['history'].append(f"Admin duyệt tay (+{amt:,}đ)")
+        
+        await query.message.edit_text(f"✅ <b>ĐÃ DUYỆT THÀNH CÔNG!</b>\nĐã cộng <code>{amt:,}đ</code> cho User ID: <code>{target_uid}</code> bởi Admin <code>{uid}</code>", parse_mode="HTML")
+        try:
+            await context.bot.send_message(
+                chat_id=target_uid,
+                text=f"🎉 <b>NẠP TIỀN ĐÃ ĐƯỢC ADMIN DUYỆT!</b>\n━━━━━━━━━━━━━━━━━━━\n💵 Số tiền cộng: <b>+{amt:,}đ</b>\n💎 Số dư ví mới: <b>{target_u['balance']:,}đ</b>{SIGNATURE}",
+                parse_mode="HTML"
+            )
+        except:
+            pass
+
+    elif data.startswith('reject_') and is_admin(uid):
+        target_uid = int(data.split('_')[1])
+        await query.message.edit_text(f"❌ <b>ĐÃ TỪ CHỐI GIAO DỊCH NẠP TIỀN</b> của User ID: <code>{target_uid}</code>", parse_mode="HTML")
+        try:
+            await context.bot.send_message(chat_id=target_uid, text=f"❌ <b>Yêu cầu nạp tiền của bạn không được xác thực hoặc chưa nhận được tiền trong tài khoản. Vui lòng liên hệ Admin!</b>{SIGNATURE}", parse_mode="HTML")
+        except:
+            pass
+
     elif data == 'menu_account':
         _, rem = check_lim(uid)
         await edit_or_send(query, f"👤 <b>THÔNG TIN TÀI KHOẢN CÁ NHÂN</b>\n━━━━━━━━━━━━━━━━━━━\n🆔 Telegram ID: <code>{uid}</code>\n💎 Số Dư Ví: <b>{u['balance']:,}đ</b>\n💳 Tổng Nạp: <b>{u['total_deposit']:,}đ</b>\n⏳ Lượt Free Hôm Nay: <code>{rem}/3 lượt</code>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại Menu Chính", callback_data='back_menu')]]))
     elif data == 'menu_history':
         hist = "\n".join(u['history'][-10:]) if u['history'] else "Chưa có lịch sử giao dịch nào."
         await edit_or_send(query, f"🧾 <b>LỊCH SỬ GIAO DỊCH GẦN NHẤT:</b>\n━━━━━━━━━━━━━━━━━━━\n{hist}{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại Menu Chính", callback_data='back_menu')]]))
-    elif data == 'admin_panel' and uid == ADMIN_ID:
+    elif data == 'admin_panel' and is_admin(uid):
         await edit_or_send(query, f"🛡️ <b>BẢNG ĐIỀU KHIỂN QUẢN TRỊ VIÊN</b>\n━━━━━━━━━━━━━━━━━━━\nLựa chọn tính năng quản lý hệ thống bên dưới:", InlineKeyboardMarkup([
             [InlineKeyboardButton("📊 Thống Kê Tổng Quan", callback_data='ad_stats'), InlineKeyboardButton("💸 Cộng Tiền Nhanh", callback_data='ad_bal')],
+            [InlineKeyboardButton("🔍 Kiểm Tra Số Dư User", callback_data='ad_checkbal'), InlineKeyboardButton("👥 Thêm Admin Phụ", callback_data='ad_addadmin')],
             [InlineKeyboardButton("➕ Bổ Sung Kho Key", callback_data='ad_addk'), InlineKeyboardButton("📢 Gửi Broadcast", callback_data='ad_bc')],
             [InlineKeyboardButton("🏠 Về Menu Chính", callback_data='back_menu')]
         ]))
-    elif data == 'ad_stats' and uid == ADMIN_ID:
+    elif data == 'ad_stats' and is_admin(uid):
         await edit_or_send(query, f"📊 <b>THỐNG KÊ HỆ THỐNG VIP</b>\n━━━━━━━━━━━━━━━━━━━\n👥 Tổng User: <code>{len(users)}</code>\n💰 Tổng Doanh Thu: <code>{total_rev:,}đ</code>\n\n📦 <b>Tồn Kho Chi Tiết:</b>\n• Free 1H: <code>{len(f_1h)}</code> | Free 3H: <code>{len(f_3h_free)}</code>\n• Shop 1H: <code>{len(s_1h)}</code> | Shop 6H: <code>{len(s_6h)}</code>\n• Shop 1D: <code>{len(s_1d)}</code>\n• Shop 7D: <code>{len(s_7d)}</code> | Shop 30D: <code>{len(s_30d)}</code>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại Admin Panel", callback_data='admin_panel')]]))
-    elif data == 'ad_bal' and uid == ADMIN_ID:
+    elif data == 'ad_bal' and is_admin(uid):
         admin_state[uid] = 'add_bal'
         await edit_or_send(query, f"💬 <b>Nhập ID user và số tiền cần cộng</b> theo định dạng:\n<code>[ID] [Số_tiền]</code>\n(Ví dụ: <code>7976468365 50000</code>){SIGNATURE}")
-    elif data == 'ad_bc' and uid == ADMIN_ID:
+    elif data == 'ad_checkbal' and is_admin(uid):
+        admin_state[uid] = 'check_user_bal'
+        await edit_or_send(query, f"💬 <b>Nhập Telegram ID của người dùng cần kiểm tra số dư:</b>\n(Ví dụ: <code>7976468365</code>){SIGNATURE}")
+    elif data == 'ad_addadmin' and uid == ADMIN_ID:
+        admin_state[uid] = 'add_admin_id'
+        await edit_or_send(query, f"💬 <b>Nhập Telegram ID của tài khoản muốn phân quyền làm Admin phụ:</b>\n(Ví dụ: <code>123456789</code>){SIGNATURE}")
+    elif data == 'ad_bc' and is_admin(uid):
         admin_state[uid] = 'bc'
         await edit_or_send(query, f"💬 <b>Nhập nội dung thông báo (Broadcast)</b> muốn gửi tới toàn bộ người chơi:{SIGNATURE}")
-    elif data == 'ad_addk' and uid == ADMIN_ID:
+    elif data == 'ad_addk' and is_admin(uid):
         await edit_or_send(query, f"📦 <b>CHỌN KHO HÀNG CẦN BỔ SUNG KEY:</b>", InlineKeyboardMarkup([
             [InlineKeyboardButton("🔓 Free 1H", callback_data='k_f1h'), InlineKeyboardButton("💎 Free 3H", callback_data='k_f3h')],
             [InlineKeyboardButton("🛒 Shop 1H", callback_data='k_s1h'), InlineKeyboardButton("🛒 Shop 6H", callback_data='k_s6h')],
             [InlineKeyboardButton("🛒 Shop 1D", callback_data='k_s1d'), InlineKeyboardButton("🛒 Shop 7D", callback_data='k_s7d')],
             [InlineKeyboardButton("🛒 Shop 30D", callback_data='k_s30d'), InlineKeyboardButton("◀️ Quay Lại", callback_data='admin_panel')]
         ]))
-    elif data.startswith('k_') and uid == ADMIN_ID:
+    elif data.startswith('k_') and is_admin(uid):
         admin_state[uid] = f"addk_{data.replace('k_', '')}"
         await edit_or_send(query, f"📝 <b>Dán danh sách Key mới vào khung chat.</b>\n(Mỗi key cách nhau bằng dòng trống):{SIGNATURE}")
 
@@ -324,10 +389,10 @@ async def send_qr(query, context, uid, amount):
         f"💵 Số tiền: <b>{amount:,}đ</b>\n"
         f"📝 Nội dung CK: <code>{add_info}</code>\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"👉 <i>Mở App Ngân hàng quét mã QR trên. Hệ thống sẽ tự động cộng tiền vào ví sau vài giây!</i>"
+        f"👉 <i>Mở App Ngân hàng quét mã QR trên. Sau khi chuyển khoản, bấm nút bên dưới để gửi yêu cầu cho Admin xác nhận!</i>"
     )
     kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("✅ Kiểm Tra Trạng Thái Nạp Tiền", callback_data=f"check_pay_{amount}")],
+        [InlineKeyboardButton("✅ Gửi Yêu Cầu Xác Nhận Nạp Tiền", callback_data=f"check_pay_{amount}")],
         [InlineKeyboardButton("◀️ Chọn Mức Nạp Khác", callback_data='menu_deposit')]
     ])
     try:
@@ -351,12 +416,12 @@ async def handle_admin_text(update, context):
                 return
             add_info = f"NAP {uid}"
             url = f"https://vietqr.app/img?bank={BANK_ID}&acc={ACCOUNT_NO}&template=compact&showinfo=true&holder={quote(ACCOUNT_NAME)}&amount={amt}&memo={quote(add_info)}"
-            kb = InlineKeyboardMarkup([[InlineKeyboardButton("✅ Kiểm Tra Số Dư", callback_data=f"check_pay_{amt}")], [InlineKeyboardButton("🏠 Về Menu Chính", callback_data='back_menu')]])
+            kb = InlineKeyboardMarkup([[InlineKeyboardButton("✅ Gửi Yêu Cầu Xác Nhận", callback_data=f"check_pay_{amt}")], [InlineKeyboardButton("🏠 Về Menu Chính", callback_data='back_menu')]])
             await update.message.reply_photo(photo=url, caption=f"💳 QR Nạp {amt:,}đ\nNội dung: <code>{add_info}</code>", reply_markup=kb, parse_mode="HTML")
         except: await update.message.reply_text("❌ Số tiền nhập không hợp lệ!")
         return
 
-    if uid != ADMIN_ID: return
+    if not is_admin(uid): return
 
     if state == 'add_bal':
         try:
@@ -368,6 +433,30 @@ async def handle_admin_text(update, context):
             try: await context.bot.send_message(tid, f"🎁 <b>[TÀI CHÍNH]</b> Bạn vừa được Admin cộng thêm <b>+{amt:,}đ</b> vào số dư ví!{SIGNATURE}", parse_mode="HTML")
             except: pass
         except: await update.message.reply_text("❌ Sai cú pháp! Vui lòng nhập: `[ID] [Số_tiền]`")
+        del admin_state[uid]
+    elif state == 'check_user_bal':
+        try:
+            tid = int(text.strip())
+            if tid in user_data:
+                target_u = user_data[tid]
+                hist_preview = "\n".join(target_u['history'][-5:]) if target_u['history'] else "Trống."
+                await update.message.reply_text(f"🔍 <b>THÔNG TIN SỐ DƯ USER</b>\n━━━━━━━━━━━━━━━━━━━\n🆔 ID: <code>{tid}</code>\n💎 Số dư ví: <b>{target_u['balance']:,}đ</b>\n💳 Tổng nạp: <b>{target_u['total_deposit']:,}đ</b>\n\n🧾 <b>Lịch sử gần đây:</b>\n{hist_preview}{SIGNATURE}", parse_mode="HTML")
+            else:
+                await update.message.reply_text(f"❌ Không tìm thấy dữ liệu của User ID: <code>{tid}</code> trong hệ thống.")
+        except:
+            await update.message.reply_text("❌ ID không hợp lệ!")
+        del admin_state[uid]
+    elif state == 'add_admin_id' and uid == ADMIN_ID:
+        try:
+            new_adm = int(text.strip())
+            admin_list.add(new_adm)
+            await update.message.reply_text(f"✅ Đã thêm thành công Telegram ID: <code>{new_adm}</code> vào danh sách Quản Trị Viên phụ!")
+            try:
+                await context.bot.send_message(chat_id=new_adm, text=f"👑 <b>[QUYỀN HẠN]</b> Bạn đã được bổ nhiệm làm Quản Trị Viên của bot! Hãy dùng lệnh /start hoặc mở Admin Panel để quản lý hệ thống.{SIGNATURE}", parse_mode="HTML")
+            except:
+                pass
+        except:
+            await update.message.reply_text("❌ ID Admin không hợp lệ!")
         del admin_state[uid]
     elif state == 'bc':
         del admin_state[uid]
@@ -401,7 +490,7 @@ def sepay():
     data = request.json
     if data and data.get("transferType") == "in":
         content = data.get("content", "")
-        m = re.search(r"NAP\s+(\d+)", content, re.IGNORECASE)
+        m = re.search(r"NAP[\s\-]*(\d+)", content, re.IGNORECASE)
         if m:
             tid = int(m.group(1))
             amt = int(data.get("transferAmount", 0))
