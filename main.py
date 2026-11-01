@@ -248,15 +248,15 @@ async def send_qr(query, context, uid, amount):
     add_info = f"NAP {uid}"
     url = f"https://vietqr.app/img?bank={BANK_ID}&acc={ACCOUNT_NO}&template=compact&showinfo=true&holder={quote(ACCOUNT_NAME)}&amount={amount}&memo={quote(add_info)}"
     
-    # Đã sửa lại dùng thẻ chuẩn <tg-spoiler> thay cho <spoiler> để tránh lỗi parse entities
+    # 💡 Dùng thẻ <code> để Số tài khoản và Nội dung CK hiển thị dạng hộp mã đơn sắc, ấn vào là tự động copy giống Số tài khoản!
     text = (
         f"💳 <b>MÃ QR NẠP TIỀN TỰ ĐỘNG 24/7</b>\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"🏦 Ngân hàng: <b>{BANK_ID}</b>\n"
-        f"🔢 Số tài khoản: <code>{ACCOUNT_NO}</code>\n"
+        f"🔢 Số tài khoản: <code>{ACCOUNT_NO}</code> <i>(Chạm để copy)</i>\n"
         f"👤 Chủ tài khoản: <b>{ACCOUNT_NAME}</b>\n"
         f"💵 Số tiền: <b>{amount:,}đ</b>\n"
-        f"📝 Nội dung CK: <tg-spoiler><b>NAP {uid}</b></tg-spoiler> <i>(Bấm vào để mở khóa & copy)</i>\n"
+        f"📝 Nội dung CK: <code>NAP {uid}</code> <i>(Chạm để copy)</i>\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"🚨 <b>LƯU Ý QUAN TRỌNG CHO NGƯỜI MUA:</b>\n"
         f"⚠️ <b>TUYỆT ĐỐI KHÔNG ĐƯỢC SỬA ĐỔI HOẶC XÓA NỘI DUNG CHUYỂN KHOẢN!</b>\n"
@@ -292,7 +292,7 @@ async def handle_admin_text(update, context):
             
             text_custom = (
                 f"💳 <b>QR NẠP {amt:,}đ</b>\n"
-                f"📝 Nội dung CK bắt buộc: <tg-spoiler><b>NAP {uid}</b></tg-spoiler>\n\n"
+                f"📝 Nội dung CK bắt buộc: <code>NAP {uid}</code> <i>(Chạm để copy)</i>\n\n"
                 f"🚨 <b>LƯU Ý: KHÔNG ĐƯỢC SỬA NỘI DUNG CHUYỂN KHOẢN ĐỂ TRÁNH MẤT TIỀN!</b>"
             )
             kb = InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Về Menu Chính", callback_data='back_menu')]])
