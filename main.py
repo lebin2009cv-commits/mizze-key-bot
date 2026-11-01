@@ -171,66 +171,6 @@ async def button_handler(update, context):
             await edit_or_send(query, f"💬 <b>Vui lòng nhập số tiền bạn muốn nạp vào khung chat</b> (Ví dụ: <code>50000</code>):{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại", callback_data='menu_deposit')]]))
             return
         await send_qr(query, context, uid, int(sub))
-    elif data.startswith('check_pay_'):
-        amt = int(data.replace('check_pay_', ''))
-        await query.answer("📩 Đã gửi yêu cầu xác nhận nạp tiền đến toàn bộ Admin!", show_alert=True)
-        
-        admin_msg = (
-            f"🔔 <b>CÓ YÊU CẦU NẠP TIỀN MỚI CẦN DUYỆT!</b>\n"
-            f"━━━━━━━━━━━━━━━━━━━\n"
-            f"👤 User: <code>{query.from_user.full_name}</code> (ID: <code>{uid}</code>)\n"
-            f"💵 Số tiền: <b>{amt:,}đ</b>\n"
-            f"📝 Nội dung CK: <code>NAP {uid}</code>\n"
-            f"━━━━━━━━━━━━━━━━━━━\n"
-            f"👉 <i>Kiểm tra tài khoản ngân hàng và bấm nút bên dưới để cộng tiền cho khách!</i>"
-        )
-        admin_kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"✅ Duyệt +{amt:,}đ", callback_data=f"approve_{uid}_{amt}"),
-             InlineKeyboardButton("❌ Từ chối", callback_data=f"reject_{uid}")]
-        ])
-        
-        for adm in list(admin_list):
-            try:
-                await context.bot.send_message(chat_id=adm, text=admin_msg, reply_markup=admin_kb, parse_mode="HTML")
-            except:
-                pass
-
-        await edit_or_send(query, f"⏳ <b>ĐÃ GỬI YÊU CẦU ĐẾN ADMIN!</b>\n━━━━━━━━━━━━━━━━━━━\n💵 Mức nạp: <b>{amt:,}đ</b>\n📝 Nội dung: <code>NAP {uid}</code>\n\n<i>Yêu cầu của bạn đã được chuyển đến bộ phận Quản Trị. Số dư sẽ được cộng vào ví ngay sau khi Admin xác nhận!</i>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Về Menu Chính", callback_data='back_menu')]]))
-    
-    elif data.startswith('approve_') and is_admin(uid):
-        parts = data.split('_')
-        target_uid = int(parts[1])
-        amt = int(parts[2])
-        
-        target_u = get_u(target_uid)
-        target_u['balance'] += amt
-        target_u['total_deposit'] += amt
-        target_u['history'].append(f"Admin duyệt tay (+{amt:,}đ)")
-        
-        try:
-            await query.message.edit_text(f"✅ <b>ĐÃ DUYỆT THÀNH CÔNG!</b>\nĐã cộng <code>{amt:,}đ</code> cho User ID: <code>{target_uid}</code> bởi Admin <code>{uid}</code>", parse_mode="HTML")
-        except:
-            pass
-
-        try:
-            await context.bot.send_message(
-                chat_id=target_uid,
-                text=f"🎉 <b>NẠP TIỀN ĐÃ ĐƯỢC ADMIN DUYỆT!</b>\n━━━━━━━━━━━━━━━━━━━\n💵 Số tiền cộng: <b>+{amt:,}đ</b>\n💎 Số dư ví mới: <b>{target_u['balance']:,}đ</b>{SIGNATURE}",
-                parse_mode="HTML"
-            )
-        except:
-            pass
-
-    elif data.startswith('reject_') and is_admin(uid):
-        target_uid = int(data.split('_')[1])
-        try:
-            await query.message.edit_text(f"❌ <b>ĐÃ TỪ CHỐI GIAO DỊCH NẠP TIỀN</b> của User ID: <code>{target_uid}</code>", parse_mode="HTML")
-        except:
-            pass
-        try:
-            await context.bot.send_message(chat_id=target_uid, text=f"❌ <b>Yêu cầu nạp tiền của bạn không được xác thực hoặc chưa nhận được tiền trong tài khoản. Vui lòng liên hệ Admin!</b>{SIGNATURE}", parse_mode="HTML")
-        except:
-            pass
 
     elif data == 'menu_account':
         await edit_or_send(query, f"👤 <b>THÔNG TIN TÀI KHOẢN CÁ NHÂN</b>\n━━━━━━━━━━━━━━━━━━━\n🆔 Telegram ID: <code>{uid}</code>\n💎 Số Dư Ví: <b>{u['balance']:,}đ</b>\n💳 Tổng Nạp: <b>{u['total_deposit']:,}đ</b>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại Menu Chính", callback_data='back_menu')]]))
@@ -279,6 +219,7 @@ async def send_qr(query, context, uid, amount):
     add_info = f"NAP {uid}"
     url = f"https://vietqr.app/img?bank={BANK_ID}&acc={ACCOUNT_NO}&template=compact&showinfo=true&holder={quote(ACCOUNT_NAME)}&amount={amount}&memo={quote(add_info)}"
     
+    # ⚠️ Nội dung chuyển khoản được bọc trong thẻ <spoiler> để làm mờ, khách bấm vào là hiện để copy
     text = (
         f"💳 <b>MÃ QR NẠP TIỀN TỰ ĐỘNG 24/7</b>\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
@@ -286,16 +227,16 @@ async def send_qr(query, context, uid, amount):
         f"🔢 Số tài khoản: <code>{ACCOUNT_NO}</code>\n"
         f"👤 Chủ tài khoản: <b>{ACCOUNT_NAME}</b>\n"
         f"💵 Số tiền: <b>{amount:,}đ</b>\n"
-        f"📝 Nội dung CK: <b>NAP {uid}</b>\n"
+        f"📝 Nội dung CK: <spoiler><b>NAP {uid}</b></spoiler> <i>(Bấm vào để mở khóa & copy)</i>\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"🚨 <b>LƯU Ý QUAN TRỌNG CHO NGƯỜI MUA:</b>\n"
         f"⚠️ <b>TUYỆT ĐỐI KHÔNG ĐƯỢC SỬA ĐỔI HOẶC XÓA NỘI DUNG CHUYỂN KHOẢN!</b>\n"
-        f"⚠️ <i>Nếu bạn tự ý sửa đổi hoặc ghi sai nội dung <code>NAP {uid}</code>, hệ thống sẽ KHÔNG THỂ nhận diện để cộng tiền tự động cho bạn!</i>\n"
+        f"⚠️ <i>Nếu bạn tự ý sửa đổi hoặc ghi sai nội dung, hệ thống SePay sẽ KHÔNG THỂ nhận diện để tự động cộng tiền cho bạn!</i>\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"👉 <i>Quét mã QR bằng App ngân hàng. Sau khi chuyển khoản xong, bấm nút xác nhận bên dưới!</i>"
+        f"👉 <i>Quét mã QR bằng App ngân hàng. Tiền sẽ được tự động cộng vào ví sau vài giây!</i>"
     )
     kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("✅ Gửi Yêu Cầu Xác Nhận Nạp Tiền", callback_data=f"check_pay_{amount}")],
+        [InlineKeyboardButton("🔄 Kiểm Tra Lại Số Dư Ví", callback_data='menu_account')],
         [InlineKeyboardButton("◀️ Chọn Mức Nạp Khác", callback_data='menu_deposit')]
     ])
     try:
@@ -322,10 +263,10 @@ async def handle_admin_text(update, context):
             
             text_custom = (
                 f"💳 <b>QR NẠP {amt:,}đ</b>\n"
-                f"📝 Nội dung CK bắt buộc: <b>NAP {uid}</b>\n\n"
+                f"📝 Nội dung CK bắt buộc: <spoiler><b>NAP {uid}</b></spoiler>\n\n"
                 f"🚨 <b>LƯU Ý: KHÔNG ĐƯỢC SỬA NỘI DUNG CHUYỂN KHOẢN ĐỂ TRÁNH MẤT TIỀN!</b>"
             )
-            kb = InlineKeyboardMarkup([[InlineKeyboardButton("✅ Gửi Yêu Cầu Xác Nhận", callback_data=f"check_pay_{amt}")], [InlineKeyboardButton("🏠 Về Menu Chính", callback_data='back_menu')]])
+            kb = InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Về Menu Chính", callback_data='back_menu')]])
             await update.message.reply_photo(photo=url, caption=text_custom, reply_markup=kb, parse_mode="HTML")
         except: await update.message.reply_text("❌ Số tiền nhập không hợp lệ!")
         return
