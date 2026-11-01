@@ -31,10 +31,13 @@ s_1h, s_6h, s_1d, s_7d, s_30d = [], [], [], [], []
 admin_state = {}
 users, user_data = set(), {}
 cooldown_cache = {}  # Chống spam click liên tục
-bot_active, total_rev = True, 0
+bot_active = True    # Trạng thái hoạt động / bảo trì của bot
+total_rev = 0
 
 def get_u(uid):
-    if uid not in user_data: user_data[uid] = {'balance': 0, 'total_deposit': 0, 'history': []}
+    if uid not in user_data: 
+        # Giới hạn lịch sử giao dịch mỗi user tối đa 20 mục để tránh tràn bộ nhớ RAM
+        user_data[uid] = {'balance': 0, 'total_deposit': 0, 'history': []}
     return user_data[uid]
 
 def is_admin(uid):
@@ -44,6 +47,9 @@ def check_spam(uid):
     now = time.time()
     if uid in cooldown_cache and now - cooldown_cache[uid] < 3:
         return True
+    # Dọn dẹp bộ nhớ đệm cooldown cũ nếu quá nhiều user để tránh phình RAM
+    if len(cooldown_cache) > 1000:
+        cooldown_cache.clear()
     cooldown_cache[uid] = now
     return False
 
@@ -72,8 +78,14 @@ async def broadcast_all(context, msg):
 
 async def show_main_menu(update, context):
     uid = update.effective_user.id
+    
+    # Kiểm tra trạng thái bảo trì bot
     if not bot_active and not is_admin(uid):
-        text = "🚧 <b>HỆ THỐNG ĐANG BẢO TRÌ NÂNG CẤP</b> 🚧" + SIGNATURE
+        text = (
+            f"🚧 <b>HỆ THỐNG ĐANG BẢO TRÌ NÂNG CẤP</b> 🚧\n\n"
+            f"<i>Bot hiện đang tạm dừng hoạt động để bảo trì hệ thống. Vui lòng quay lại sau ít phút nhé!</i>"
+            f"{SIGNATURE}"
+        )
         if update.message: await update.message.reply_text(text, parse_mode="HTML")
         elif update.callback_query: await update.callback_query.message.edit_text(text, parse_mode="HTML")
         return
@@ -84,20 +96,18 @@ async def show_main_menu(update, context):
         f"📢 <b>Kênh Thông Báo:</b> <a href='{CHANNEL_URL}'>Bấm Vào Đây</a>\n"
         f"👑 <b>Admin Hỗ Trợ:</b> <a href='{ADMIN_CONTACT}'>Liên Hệ Ngay</a>\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"💳 <b>Tổng Nạp:</b> <code>{u['total_deposit']:,}đ</code>\n"
-        f"💎 <b>Số Dư Ví:</b> <b>{u['balance']:,}đ</b>\n"
+        f"💳 <b>Tổng Nạp:</b> <code>{u['total_deposit']:,}đ</code> | 💎 <b>Số Dư Ví:</b> <b>{u['balance']:,}đ</b>\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"📦 <b>📊 KHO HÀNG VIP REAL-TIME:</b>\n"
-        f"  • ⚡ <b>Shop 1H:</b> <code>[{len(s_1h)} Key]</code> | 🔥 <b>Shop 6H:</b> <code>[{len(s_6h)} Key]</code>\n"
-        f"  • 💎 <b>Shop 1D:</b> <code>[{len(s_1d)} Key]</code> | 👑 <b>Shop 7D:</b> <code>[{len(s_7d)} Key]</code>\n"
-        f"  • 🚀 <b>Shop 30D:</b> <code>[{len(s_30d)} Key]</code>"
+        f"  • ⚡ <b>1H:</b> <code>[{len(s_1h)}]</code> | 🔥 <b>6H:</b> <code>[{len(s_6h)}]</code> | 💎 <b>1D:</b> <code>[{len(s_1d)}]</code>\n"
+        f"  • 👑 <b>7D:</b> <code>[{len(s_7d)}]</code> | 🚀 <b>30D:</b> <code>[{len(s_30d)}]</code>"
         f"{SIGNATURE}"
     )
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("🛒 Cửa Hàng Mua Key VIP", callback_data='menu_shop')],
         [InlineKeyboardButton("💳 Nạp Tiền Tự Động 24/7", callback_data='menu_deposit')],
-        [InlineKeyboardButton("👤 Tài Khoản Cá Nhân", callback_data='menu_account'), InlineKeyboardButton("🧾 Lịch Sử Giao Dịch", callback_data='menu_history')],
-        [InlineKeyboardButton("💬 Hỗ Trợ Khách Hàng", url=SUPPORT_CONTACT), InlineKeyboardButton("⚙️ Quản Trị Viên", callback_data='admin_panel')]
+        [InlineKeyboardButton("👤 Tài Khoản", callback_data='menu_account'), InlineKeyboardButton("🧾 Lịch Sử", callback_data='menu_history')],
+        [InlineKeyboardButton("💬 Hỗ Trợ", url=SUPPORT_CONTACT), InlineKeyboardButton("⚙️ Quản Trị Viên", callback_data='admin_panel')]
     ])
     try:
         if update.message: await update.message.reply_photo(photo=BANNER_URL, caption=text, reply_markup=kb, parse_mode="HTML")
@@ -115,7 +125,7 @@ async def start(update, context):
     await show_main_menu(update, context)
 
 async def button_handler(update, context):
-    global total_rev
+    global total_rev, bot_active
     query = update.callback_query
     uid = query.from_user.id
 
@@ -129,15 +139,14 @@ async def button_handler(update, context):
 
     if data == 'back_menu': await show_main_menu(update, context)
     elif data == 'menu_shop':
+        # Thu gọn các gói mua key thành các hàng đôi cân đối, đẹp mắt và dễ nhìn
         kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"⚡ Mua 1H ({P_1H:,}đ) — Tồn: {len(s_1h)}", callback_data='buy_1h')],
-            [InlineKeyboardButton(f"🔥 Mua 6H ({P_6H:,}đ) — Tồn: {len(s_6h)}", callback_data='buy_6h')],
-            [InlineKeyboardButton(f"💎 Mua 1D ({P_1D:,}đ) — Tồn: {len(s_1d)}", callback_data='buy_1d')],
-            [InlineKeyboardButton(f"👑 Mua 7D ({P_7D:,}đ) — Tồn: {len(s_7d)}", callback_data='buy_7d')],
-            [InlineKeyboardButton(f"🚀 Mua 30D ({P_30D:,}đ) — Tồn: {len(s_30d)}", callback_data='buy_30d')],
-            [InlineKeyboardButton("💳 Nạp Tiền Tài Khoản", callback_data='menu_deposit'), InlineKeyboardButton("◀️ Menu Chính", callback_data='back_menu')]
+            [InlineKeyboardButton(f"⚡ 1H ({P_1H:,}đ) [{len(s_1h)}]", callback_data='buy_1h'), InlineKeyboardButton(f"🔥 6H ({P_6H:,}đ) [{len(s_6h)}]", callback_data='buy_6h')],
+            [InlineKeyboardButton(f"💎 1D ({P_1D:,}đ) [{len(s_1d)}]", callback_data='buy_1d'), InlineKeyboardButton(f"👑 7D ({P_7D:,}đ) [{len(s_7d)}]", callback_data='buy_7d')],
+            [InlineKeyboardButton(f"🚀 30D ({P_30D:,}đ) [{len(s_30d)}]", callback_data='buy_30d')],
+            [InlineKeyboardButton("💳 Nạp Tiền", callback_data='menu_deposit'), InlineKeyboardButton("◀️ Menu Chính", callback_data='back_menu')]
         ])
-        await edit_or_send(query, f"🛒 <b>CỬA HÀNG MUA KEY VIP TỰ ĐỘNG</b>\n💎 Số dư hiện tại của bạn: <b>{u['balance']:,}đ</b>\n━━━━━━━━━━━━━━━━━━━\n<i>Chọn gói dịch vụ bạn muốn sở hữu ngay bên dưới:</i>", kb)
+        await edit_or_send(query, f"🛒 <b>CỬA HÀNG MUA KEY VIP TỰ ĐỘNG</b>\n💎 Số dư ví của bạn: <b>{u['balance']:,}đ</b>\n━━━━━━━━━━━━━━━━━━━\n<i>Chọn gói dịch vụ phù hợp bên dưới:</i>", kb)
     elif data.startswith('buy_'):
         kt = data.split('_')[1]
         p_map = {'1h': (P_1H, s_1h), '6h': (P_6H, s_6h), '1d': (P_1D, s_1d), '7d': (P_7D, s_7d), '30d': (P_30D, s_30d)}
@@ -153,6 +162,8 @@ async def button_handler(update, context):
         u['balance'] -= price; total_rev += price
         k_nhan = kho.pop(0)
         u['history'].append(f"Mua {kt.upper()} (-{price:,}đ)")
+        if len(u['history']) > 20: u['history'].pop(0)  # Tối ưu RAM, giữ lại tối đa 20 lịch sử giao dịch gần nhất
+        
         await notify_all_admins(context, f"User <code>{uid}</code> vừa mua thành công gói <b>{kt.upper()}</b> với giá <b>{price:,}đ</b>. Kho còn lại: <code>{len(kho)}</code>")
         
         key_display = f"<code>{k_nhan}</code>" if "KEY" in k_nhan.upper() else f"<pre>{k_nhan}</pre>"
@@ -178,14 +189,39 @@ async def button_handler(update, context):
         hist = "\n".join(u['history'][-10:]) if u['history'] else "Chưa có lịch sử giao dịch nào."
         await edit_or_send(query, f"🧾 <b>LỊCH SỬ GIAO DỊCH GẦN NHẤT:</b>\n━━━━━━━━━━━━━━━━━━━\n{hist}{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại Menu Chính", callback_data='back_menu')]]))
     elif data == 'admin_panel' and is_admin(uid):
-        await edit_or_send(query, f"🛡️ <b>BẢNG ĐIỀU KHIỂN QUẢN TRỊ VIÊN</b>\n━━━━━━━━━━━━━━━━━━━\nLựa chọn tính năng quản lý hệ thống bên dưới:", InlineKeyboardMarkup([
+        status_text = "🟢 Đang Hoạt Động" if bot_active else "🔴 Đang Bảo Trì"
+        toggle_text = "🔴 Tắt Bot (Bảo Trì)" if bot_active else "🟢 Bật Bot (Mở Lại)"
+        await edit_or_send(query, f"🛡️ <b>BẢNG ĐIỀU KHIỂN QUẢN TRỊ VIÊN</b>\n━━━━━━━━━━━━━━━━━━━\nTrạng thái Bot: <b>{status_text}</b>\nLựa chọn tính năng quản lý hệ thống bên dưới:", InlineKeyboardMarkup([
+            [InlineKeyboardButton(toggle_text, callback_data='toggle_bot_status')],
             [InlineKeyboardButton("📊 Thống Kê Tổng Quan", callback_data='ad_stats'), InlineKeyboardButton("💸 Cộng Tiền Nhanh", callback_data='ad_bal')],
-            [InlineKeyboardButton("📉 Trừ Tiền User", callback_data='ad_subbal'), InlineKeyboardButton("🔍 Kiểm Tra Số Dư User", callback_data='ad_checkbal')],
+            [InlineKeyboardButton("📉 Trừ Tiền User", callback_data='ad_subbal'), InlineKeyboardButton("🔍 Kiểm Tra Số Dư", callback_data='ad_checkbal')],
             [InlineKeyboardButton("👥 Thêm Admin Phụ", callback_data='ad_addadmin'), InlineKeyboardButton("➕ Bổ Sung Kho Key", callback_data='ad_addk')],
             [InlineKeyboardButton("📢 Gửi Broadcast", callback_data='ad_bc'), InlineKeyboardButton("🏠 Menu Chính", callback_data='back_menu')]
         ]))
+    elif data == 'toggle_bot_status' and is_admin(uid):
+        bot_active = not bot_active
+        status_str = "bật hoạt động trở lại ✅" if bot_active else "tạm dừng để bảo trì 🛑"
+        await query.answer(f"Đã chuyển trạng thái bot thành công!", show_alert=True)
+        
+        # Tự động gửi thông báo broadcast đến tất cả người dùng khi trạng thái bot thay đổi
+        if not bot_active:
+            await broadcast_all(context, f"🚧 <b>THÔNG BÁO BẢO TRÌ HỆ THỐNG</b>\n━━━━━━━━━━━━━━━━━━━\nBot hiện đang tạm dừng hoạt động để nâng cấp. Xin lỗi quý khách vì sự bất tiện này!")
+        else:
+            await broadcast_all(context, f"🚀 <b>THÔNG BÁO MỞ LẠI HỆ THỐNG</b>\n━━━━━━━━━━━━━━━━━━━\nBot đã chính thức hoạt động trở lại bình thường. Chúc quý khách mua sắm vui vẻ!")
+            
+        # Quay lại menu admin
+        status_text = "🟢 Đang Hoạt Động" if bot_active else "🔴 Đang Bảo Trì"
+        toggle_text = "🔴 Tắt Bot (Bảo Trì)" if bot_active else "🟢 Bật Bot (Mở Lại)"
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton(toggle_text, callback_data='toggle_bot_status')],
+            [InlineKeyboardButton("📊 Thống Kê Tổng Quan", callback_data='ad_stats'), InlineKeyboardButton("💸 Cộng Tiền Nhanh", callback_data='ad_bal')],
+            [InlineKeyboardButton("📉 Trừ Tiền User", callback_data='ad_subbal'), InlineKeyboardButton("🔍 Kiểm Tra Số Dư", callback_data='ad_checkbal')],
+            [InlineKeyboardButton("👥 Thêm Admin Phụ", callback_data='ad_addadmin'), InlineKeyboardButton("➕ Bổ Sung Kho Key", callback_data='ad_addk')],
+            [InlineKeyboardButton("📢 Gửi Broadcast", callback_data='ad_bc'), InlineKeyboardButton("🏠 Menu Chính", callback_data='back_menu')]
+        ])
+        await edit_or_send(query, f"🛡️ <b>BẢNG ĐIỀU KHIỂN QUẢN TRỊ VIÊN</b>\n━━━━━━━━━━━━━━━━━━━\nTrạng thái Bot: <b>{status_text}</b>\nLựa chọn tính năng quản lý hệ thống bên dưới:", kb)
     elif data == 'ad_stats' and is_admin(uid):
-        await edit_or_send(query, f"📊 <b>THỐNG KÊ HỆ THỐNG VIP</b>\n━━━━━━━━━━━━━━━━━━━\n👥 Tổng User: <code>{len(users)}</code>\n💰 Tổng Doanh Thu: <code>{total_rev:,}đ</code>\n\n📦 <b>Tồn Kho Chi Tiết:</b>\n• Shop 1H: <code>{len(s_1h)}</code> | Shop 6H: <code>{len(s_6h)}</code>\n• Shop 1D: <code>{len(s_1d)}</code>\n• Shop 7D: <code>{len(s_7d)}</code> | Shop 30D: <code>{len(s_30d)}</code>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại Admin Panel", callback_data='admin_panel')]]))
+        await edit_or_send(query, f"📊 <b>THỐNG KÊ HỆ THỐNG VIP</b>\n━━━━━━━━━━━━━━━━━━━\n👥 Tổng User: <code>{len(users)}</code>\n💰 Tổng Doanh Thu: <code>{total_rev:,}đ</code>\n\n📦 <b>Tồn Kho Chi Tiết:</b>\n• 1H: <code>{len(s_1h)}</code> | 6H: <code>{len(s_6h)}</code> | 1D: <code>{len(s_1d)}</code>\n• 7D: <code>{len(s_7d)}</code> | 30D: <code>{len(s_30d)}</code>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại Admin Panel", callback_data='admin_panel')]]))
     elif data == 'ad_bal' and is_admin(uid):
         admin_state[uid] = 'add_bal'
         await edit_or_send(query, f"💬 <b>Nhập ID user và số tiền cần cộng</b> theo định dạng:\n<code>[ID] [Số_tiền]</code>\n(Ví dụ: <code>7976468365 50000</code>){SIGNATURE}")
@@ -219,7 +255,6 @@ async def send_qr(query, context, uid, amount):
     add_info = f"NAP {uid}"
     url = f"https://vietqr.app/img?bank={BANK_ID}&acc={ACCOUNT_NO}&template=compact&showinfo=true&holder={quote(ACCOUNT_NAME)}&amount={amount}&memo={quote(add_info)}"
     
-    # ⚠️ Nội dung chuyển khoản được bọc trong thẻ <spoiler> để làm mờ, khách bấm vào là hiện để copy
     text = (
         f"💳 <b>MÃ QR NẠP TIỀN TỰ ĐỘNG 24/7</b>\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
@@ -279,6 +314,7 @@ async def handle_admin_text(update, context):
             u = get_u(tid)
             u['balance'] += amt; u['total_deposit'] += amt
             u['history'].append(f"Admin cộng (+{amt:,}đ)")
+            if len(u['history']) > 20: u['history'].pop(0)
             await update.message.reply_text(f"✅ Đã cộng thành công <code>{amt:,}đ</code> cho User ID: <code>{tid}</code>")
             try: await context.bot.send_message(tid, f"🎁 <b>[TÀI CHÍNH]</b> Bạn vừa được Admin cộng thêm <b>+{amt:,}đ</b> vào số dư ví!{SIGNATURE}", parse_mode="HTML")
             except: pass
@@ -290,6 +326,7 @@ async def handle_admin_text(update, context):
             u = get_u(tid)
             u['balance'] = max(0, u['balance'] - amt)
             u['history'].append(f"Admin trừ (-{amt:,}đ)")
+            if len(u['history']) > 20: u['history'].pop(0)
             await update.message.reply_text(f"✅ Đã trừ thành công <code>{amt:,}đ</code> của User ID: <code>{tid}</code>")
             try: await context.bot.send_message(tid, f"⚠️ <b>[TÀI CHÍNH]</b> Số dư ví của bạn vừa bị Admin trừ bớt <b>-{amt:,}đ</b>!{SIGNATURE}", parse_mode="HTML")
             except: pass
@@ -359,6 +396,7 @@ def sepay():
             u['balance'] += amt
             u['total_deposit'] += amt
             u['history'].append(f"SePay Auto (+{amt:,}đ)")
+            if len(u['history']) > 20: u['history'].pop(0)
             try:
                 msg = (
                     f"🎉 <b>NẠP TIỀN TỰ ĐỘNG THÀNH CÔNG!</b>\n"
