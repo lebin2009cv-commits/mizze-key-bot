@@ -31,12 +31,11 @@ s_1h, s_6h, s_1d, s_7d, s_30d = [], [], [], [], []
 admin_state = {}
 users, user_data = set(), {}
 cooldown_cache = {}  # Chống spam click liên tục
-bot_active = True    # Trạng thái hoạt động / bảo trì của bot
+bot_active = True    # Trạng thái bật/tắt bảo trì bot
 total_rev = 0
 
 def get_u(uid):
     if uid not in user_data: 
-        # Giới hạn lịch sử giao dịch mỗi user tối đa 20 mục để tránh tràn bộ nhớ RAM
         user_data[uid] = {'balance': 0, 'total_deposit': 0, 'history': []}
     return user_data[uid]
 
@@ -47,7 +46,6 @@ def check_spam(uid):
     now = time.time()
     if uid in cooldown_cache and now - cooldown_cache[uid] < 3:
         return True
-    # Dọn dẹp bộ nhớ đệm cooldown cũ nếu quá nhiều user để tránh phình RAM
     if len(cooldown_cache) > 1000:
         cooldown_cache.clear()
     cooldown_cache[uid] = now
@@ -79,7 +77,6 @@ async def broadcast_all(context, msg):
 async def show_main_menu(update, context):
     uid = update.effective_user.id
     
-    # Kiểm tra trạng thái bảo trì bot
     if not bot_active and not is_admin(uid):
         text = (
             f"🚧 <b>HỆ THỐNG ĐANG BẢO TRÌ NÂNG CẤP</b> 🚧\n\n"
@@ -139,7 +136,7 @@ async def button_handler(update, context):
 
     if data == 'back_menu': await show_main_menu(update, context)
     elif data == 'menu_shop':
-        # Thu gọn các gói mua key thành các hàng đôi cân đối, đẹp mắt và dễ nhìn
+        # Thu gọn các gói mua key thành các hàng đôi cân đối, đẹp mắt
         kb = InlineKeyboardMarkup([
             [InlineKeyboardButton(f"⚡ 1H ({P_1H:,}đ) [{len(s_1h)}]", callback_data='buy_1h'), InlineKeyboardButton(f"🔥 6H ({P_6H:,}đ) [{len(s_6h)}]", callback_data='buy_6h')],
             [InlineKeyboardButton(f"💎 1D ({P_1D:,}đ) [{len(s_1d)}]", callback_data='buy_1d'), InlineKeyboardButton(f"👑 7D ({P_7D:,}đ) [{len(s_7d)}]", callback_data='buy_7d')],
@@ -162,7 +159,7 @@ async def button_handler(update, context):
         u['balance'] -= price; total_rev += price
         k_nhan = kho.pop(0)
         u['history'].append(f"Mua {kt.upper()} (-{price:,}đ)")
-        if len(u['history']) > 20: u['history'].pop(0)  # Tối ưu RAM, giữ lại tối đa 20 lịch sử giao dịch gần nhất
+        if len(u['history']) > 20: u['history'].pop(0)  # Tối ưu RAM
         
         await notify_all_admins(context, f"User <code>{uid}</code> vừa mua thành công gói <b>{kt.upper()}</b> với giá <b>{price:,}đ</b>. Kho còn lại: <code>{len(kho)}</code>")
         
@@ -173,7 +170,7 @@ async def button_handler(update, context):
             [InlineKeyboardButton("💵 10.000đ", callback_data='qr_10000'), InlineKeyboardButton("💵 50.000đ", callback_data='qr_50000')],
             [InlineKeyboardButton("💵 100.000đ", callback_data='qr_100000'), InlineKeyboardButton("💵 200.000đ", callback_data='qr_200000')],
             [InlineKeyboardButton("✏️ Nhập Số Tiền Tùy Chỉnh", callback_data='qr_custom')],
-            [InlineKeyboardButton("◀️ Quay Lại Menu Chính", callback_data='back_menu')]
+            [InlineKeyboardButton("◀️ Menu Chính", callback_data='back_menu')]
         ]))
     elif data.startswith('qr_'):
         sub = data.replace('qr_', '')
@@ -200,16 +197,13 @@ async def button_handler(update, context):
         ]))
     elif data == 'toggle_bot_status' and is_admin(uid):
         bot_active = not bot_active
-        status_str = "bật hoạt động trở lại ✅" if bot_active else "tạm dừng để bảo trì 🛑"
-        await query.answer(f"Đã chuyển trạng thái bot thành công!", show_alert=True)
+        await query.answer("Đã chuyển trạng thái bot thành công!", show_alert=True)
         
-        # Tự động gửi thông báo broadcast đến tất cả người dùng khi trạng thái bot thay đổi
         if not bot_active:
             await broadcast_all(context, f"🚧 <b>THÔNG BÁO BẢO TRÌ HỆ THỐNG</b>\n━━━━━━━━━━━━━━━━━━━\nBot hiện đang tạm dừng hoạt động để nâng cấp. Xin lỗi quý khách vì sự bất tiện này!")
         else:
             await broadcast_all(context, f"🚀 <b>THÔNG BÁO MỞ LẠI HỆ THỐNG</b>\n━━━━━━━━━━━━━━━━━━━\nBot đã chính thức hoạt động trở lại bình thường. Chúc quý khách mua sắm vui vẻ!")
             
-        # Quay lại menu admin
         status_text = "🟢 Đang Hoạt Động" if bot_active else "🔴 Đang Bảo Trì"
         toggle_text = "🔴 Tắt Bot (Bảo Trì)" if bot_active else "🟢 Bật Bot (Mở Lại)"
         kb = InlineKeyboardMarkup([
