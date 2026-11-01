@@ -136,7 +136,6 @@ async def button_handler(update, context):
 
     if data == 'back_menu': await show_main_menu(update, context)
     elif data == 'menu_shop':
-        # Thu gọn các gói mua key thành các hàng đôi cân đối, đẹp mắt
         kb = InlineKeyboardMarkup([
             [InlineKeyboardButton(f"⚡ 1H ({P_1H:,}đ) [{len(s_1h)}]", callback_data='buy_1h'), InlineKeyboardButton(f"🔥 6H ({P_6H:,}đ) [{len(s_6h)}]", callback_data='buy_6h')],
             [InlineKeyboardButton(f"💎 1D ({P_1D:,}đ) [{len(s_1d)}]", callback_data='buy_1d'), InlineKeyboardButton(f"👑 7D ({P_7D:,}đ) [{len(s_7d)}]", callback_data='buy_7d')],
@@ -159,7 +158,7 @@ async def button_handler(update, context):
         u['balance'] -= price; total_rev += price
         k_nhan = kho.pop(0)
         u['history'].append(f"Mua {kt.upper()} (-{price:,}đ)")
-        if len(u['history']) > 20: u['history'].pop(0)  # Tối ưu RAM
+        if len(u['history']) > 20: u['history'].pop(0)
         
         await notify_all_admins(context, f"User <code>{uid}</code> vừa mua thành công gói <b>{kt.upper()}</b> với giá <b>{price:,}đ</b>. Kho còn lại: <code>{len(kho)}</code>")
         
@@ -197,7 +196,7 @@ async def button_handler(update, context):
         ]))
     elif data == 'toggle_bot_status' and is_admin(uid):
         bot_active = not bot_active
-        await query.answer("Đã chuyển trạng thái bot thành công!", show_alert=True)
+        await query.answer(f"Đã chuyển trạng thái bot thành công!", show_alert=True)
         
         if not bot_active:
             await broadcast_all(context, f"🚧 <b>THÔNG BÁO BẢO TRÌ HỆ THỐNG</b>\n━━━━━━━━━━━━━━━━━━━\nBot hiện đang tạm dừng hoạt động để nâng cấp. Xin lỗi quý khách vì sự bất tiện này!")
@@ -249,6 +248,7 @@ async def send_qr(query, context, uid, amount):
     add_info = f"NAP {uid}"
     url = f"https://vietqr.app/img?bank={BANK_ID}&acc={ACCOUNT_NO}&template=compact&showinfo=true&holder={quote(ACCOUNT_NAME)}&amount={amount}&memo={quote(add_info)}"
     
+    # Đã sửa lại dùng thẻ chuẩn <tg-spoiler> thay cho <spoiler> để tránh lỗi parse entities
     text = (
         f"💳 <b>MÃ QR NẠP TIỀN TỰ ĐỘNG 24/7</b>\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
@@ -256,7 +256,7 @@ async def send_qr(query, context, uid, amount):
         f"🔢 Số tài khoản: <code>{ACCOUNT_NO}</code>\n"
         f"👤 Chủ tài khoản: <b>{ACCOUNT_NAME}</b>\n"
         f"💵 Số tiền: <b>{amount:,}đ</b>\n"
-        f"📝 Nội dung CK: <spoiler><b>NAP {uid}</b></spoiler> <i>(Bấm vào để mở khóa & copy)</i>\n"
+        f"📝 Nội dung CK: <tg-spoiler><b>NAP {uid}</b></tg-spoiler> <i>(Bấm vào để mở khóa & copy)</i>\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"🚨 <b>LƯU Ý QUAN TRỌNG CHO NGƯỜI MUA:</b>\n"
         f"⚠️ <b>TUYỆT ĐỐI KHÔNG ĐƯỢC SỬA ĐỔI HOẶC XÓA NỘI DUNG CHUYỂN KHOẢN!</b>\n"
@@ -292,7 +292,7 @@ async def handle_admin_text(update, context):
             
             text_custom = (
                 f"💳 <b>QR NẠP {amt:,}đ</b>\n"
-                f"📝 Nội dung CK bắt buộc: <spoiler><b>NAP {uid}</b></spoiler>\n\n"
+                f"📝 Nội dung CK bắt buộc: <tg-spoiler><b>NAP {uid}</b></tg-spoiler>\n\n"
                 f"🚨 <b>LƯU Ý: KHÔNG ĐƯỢC SỬA NỘI DUNG CHUYỂN KHOẢN ĐỂ TRÁNH MẤT TIỀN!</b>"
             )
             kb = InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Về Menu Chính", callback_data='back_menu')]])
