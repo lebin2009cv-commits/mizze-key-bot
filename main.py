@@ -1,7 +1,7 @@
 import os, logging, threading, httpx, re, secrets, time, html, datetime, json
 from urllib.parse import quote
 from flask import Flask, request, jsonify
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "9112215461:AAFDBZr4BEt5e5iSFW33AfpXd6iMrdPBaaM")
@@ -10,15 +10,15 @@ BOT_USERNAME = "GetkeyMizzebot"
 ADMIN_ID = 7976468365
 admin_list = {ADMIN_ID}
 
-# Cấu hình nhóm nhận file & link nhóm
+# Cấu hình nhóm nhận file & link nhóm khách hàng
 LOG_GROUP_ID = -1003912025872
 CLIENT_GROUP_LINK = "https://t.me/mizze_lebin" 
 
 SIGNATURE = "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚡ 🔮 **MIZZE CYBERPUNK STORE** 🔮 ⚡"
 BANNER_URL = "https://files.catbox.moe/f01erm.jpeg"
 CHANNEL_URL = "https://t.me/mizze_store"
-ADMIN_CONTACT = "https://t.me/lebindz"
-SUPPORT_CONTACT = "https://t.me/lebindz"
+ADMIN_CONTACT = "https://t.me/mizze_store"
+SUPPORT_CONTACT = "https://t.me/NTH_VIP"
 
 BANK_ID = "VPBank"
 ACCOUNT_NO = "AGBSP4LRK4B099"
@@ -65,7 +65,6 @@ def save_data():
             json.dump(db, f, ensure_ascii=False, indent=4)
     except: pass
 
-# Tự động gửi file backup database về cho Admin qua Telegram
 async def auto_backup_to_admin(context):
     try:
         if os.path.exists(DB_FILE):
@@ -126,23 +125,19 @@ async def notify_all_admins(context, msg):
         except:
             pass
 
-async def broadcast_all(context, msg):
-    for u_str in list(db["users"]):
-        try: await context.bot.send_message(int(u_str), msg, parse_mode="HTML")
-        except: pass
-
 async def show_main_menu(update, context):
     uid = update.effective_user.id
     save_data() 
     
+    # Kiểm tra trạng thái bảo trì: Chặn tuyệt đối khách thường, chỉ cho phép Admin truy cập
     if not db["bot_active"] and not is_admin(uid):
-        text = (
+        maint_text = (
             f"🚧 **HỆ THỐNG ĐANG BẢO TRÌ NÂNG CẤP** 🚧\n\n"
-            f"<i>Bot hiện đang tạm dừng hoạt động để bảo trì hệ thống. Vui lòng quay lại sau ít phút nhé!</i>"
+            f"<i>Bot hiện đang tạm dừng hoạt động để bảo trì hệ thống. Vui lòng quay lại sau ít phút khi Admin mở lại nhé!</i>"
             f"{SIGNATURE}"
         )
-        if update.message: await update.message.reply_text(text, parse_mode="HTML")
-        elif update.callback_query: await update.callback_query.message.edit_text(text, parse_mode="HTML")
+        if update.message: await update.message.reply_text(maint_text, parse_mode="HTML")
+        elif update.callback_query: await update.callback_query.message.reply_text(maint_text, parse_mode="HTML")
         return
 
     u = get_u(uid)
@@ -188,9 +183,29 @@ async def show_main_menu(update, context):
 
 async def start(update, context):
     uid = update.effective_user.id
+    user_obj = update.effective_user
+    is_new = str(uid) not in db["users"]
     db["users"][str(uid)] = True
     get_u(uid)
     save_data()
+
+    # Báo ngay cho Admin khi có người dùng tương tác /start mới hoặc truy cập bot
+    if is_new or not is_admin(uid):
+        try:
+            status_bot = "🟢 Đang hoạt động" if db["bot_active"] else "🔴 Đang bảo trì"
+            notif_msg = (
+                f"👤 **CÓ NGƯỜI DÙNG TƯƠNG TÁC BOT!**\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"🔹 Tên: <b>{user_obj.full_name}</b>\n"
+                f"🔹 Username: @{user_obj.username if user_obj.username else 'Không có'}\n"
+                f"🔹 ID: <code>{uid}</code>\n"
+                f"🔹 Trạng thái hệ thống: <b>{status_bot}</b>"
+                f"{SIGNATURE}"
+            ]
+            for adm in admin_list:
+                await context.bot.send_message(chat_id=adm, text=notif_msg, parse_mode="HTML")
+        except: pass
+
     await show_main_menu(update, context)
 
 async def button_handler(update, context):
@@ -211,6 +226,9 @@ async def button_handler(update, context):
     elif data.startswith('copy_memo_'):
         memo_text = data.replace('copy_memo_', '')
         await query.answer(f"📋 Đã copy nội dung: [{memo_text}] thành công!", show_alert=True)
+    elif data.startswith('copy_val_'):
+        val_text = data.replace('copy_val_', '')
+        await query.answer(f"📋 Đã sao chép: [{val_text}] vào bộ nhớ tạm!", show_alert=True)
     elif data == 'register_seller':
         await edit_or_send(query, f"🚀 **ĐĂNG KÝ TRỞ THÀNH SELLER PARTNER**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n<i>Trở thành Seller để nhận mức giá ưu đãi cực sốc, quản lý doanh thu ngày và kinh doanh hệ thống key riêng!</i>\n\n👉 Vui lòng liên hệ Admin: <a href='{ADMIN_CONTACT}'>Bấm vào đây để đăng ký ngay</a>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại Menu", callback_data='back_menu')]]))
     elif data == 'my_keys':
@@ -510,34 +528,37 @@ async def process_purchase(query, context, uid, kt, qty):
     if len(u['buy_history']) > 20: u['buy_history'].pop(0)
     save_data()
     
-    # Tự động backup database về cho Admin mỗi khi có giao dịch mua hàng thành công
     await auto_backup_to_admin(context)
 
     keys_str = "\n".join([f"<code>{k}</code>" for k in keys_bought])
     
-    await notify_all_admins(context, f"User <code>{uid}</code> vừa mua thành công <b>{qty}x gói {kt.upper()}</b> với giá <b>{total_price:,}đ</b>. Kho còn lại: <code>{len(kho)}</code>")
-    
+    # Gửi thông báo mua hàng thẳng lên nhóm khách hàng trực tiếp, không làm phiền Admin
     try:
-        log_msg = (
-            f"🛍️ **CÓ GIAO DỊCH MUA KEY MỚI!**\n"
+        group_buy_msg = (
+            f"🛍️ **GIAO DỊCH MUA KEY THÀNH CÔNG!**\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"👤 Khách: <code>{query.from_user.full_name}</code> (ID: <code>{uid}</code>)\n"
-            f"📦 Gói: <b>{qty}x {kt.upper()}</b>\n"
-            f"💵 Tổng tiền: <b>{total_price:,}đ</b>\n"
-            f"🔑 Dữ liệu / Key:\n{keys_str}\n"
+            f"👤 Khách hàng: <code>{query.from_user.full_name}</code> (ID: <code>{uid}</code>)\n"
+            f"📦 Gói dịch vụ: <b>{qty}x {kt.upper()}</b>\n"
+            f"💵 Tổng thanh toán: <b>{total_price:,}đ</b>\n"
+            f"🔑 Key / Dữ liệu của khách:\n{keys_str}\n"
             f"⏱️ Thời gian: {time_str}"
+            f"{SIGNATURE}"
         )
-        await context.bot.send_message(chat_id=LOG_GROUP_ID, text=log_msg, parse_mode="HTML")
+        await context.bot.send_message(chat_id=LOG_GROUP_ID, text=group_buy_msg, parse_mode="HTML")
     except Exception as e:
-        logger.error(f"Không thể gửi log vào nhóm: {e}")
+        logger.error(f"Không thể gửi thông báo mua hàng lên nhóm: {e}")
 
-    success_kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📂 Nhận File / Truy Cập Nhóm Nhận Dữ Liệu", url=CLIENT_GROUP_LINK)],
+    # Xây dựng các nút bấm Copy Key, Copy Mật khẩu và Nhận File riêng biệt trực quan
+    first_key = keys_bought[0] if keys_bought else "Mizzebin"
+    success_kb_buttons = [
+        [InlineKeyboardButton("📋 COPY KEY NÀY", callback_data=f"copy_val_{first_key}"), InlineKeyboardButton("📋 COPY MẬT KHẨU", callback_data=f"copy_val_{first_key}")],
+        [InlineKeyboardButton("📂 Truy Cập Nhóm Nhận File", url=CLIENT_GROUP_LINK)],
         [InlineKeyboardButton("🔑 Xem Kho Key Của Tôi", callback_data='my_keys')],
-        [InlineKeyboardButton("🛒 Mua Thêm Gói Khác", callback_data='menu_shop'), InlineKeyboardButton("🏠 Về Menu Chính", callback_data='back_menu')]
-    ])
+        [InlineKeyboardButton("🛒 Mua Gói Khác", callback_data='menu_shop'), InlineKeyboardButton("🏠 Về Menu Chính", callback_data='back_menu')]
+    ]
+    success_kb = InlineKeyboardMarkup(success_kb_buttons)
     
-    await edit_or_send(query, f"✅ **GIAO DỊCH MUA {qty} KEY THÀNH CÔNG!**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n📦 Gói: <b>{qty}x {kt.upper()}</b> | Tổng trừ: <code>-{total_price:,}đ</code>\n\n👇 **Danh sách mã Key / Dữ liệu của bạn:**\n{keys_str}\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n📂 <i>Dữ liệu file đã được gửi vào nhóm riêng. Bấm nút bên dưới để vào nhóm nhận file cài đặt!</i>\n💎 Số dư ví còn lại: <b>{u['balance']:,}đ</b>{SIGNATURE}", success_kb)
+    await edit_or_send(query, f"✅ **MUA {qty} KEY THÀNH CÔNG RỰC RỠ!**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n📦 Gói: <b>{qty}x {kt.upper()}</b> | Trừ: <code>-{total_price:,}đ</code>\n\n👇 **Danh sách mã Key / Dữ liệu của bạn:**\n{keys_str}\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n📂 <i>Bạn có thể bấm nút copy bên dưới hoặc vào nhóm nhận file cài đặt!</i>\n💎 Số dư ví còn lại: <b>{u['balance']:,}đ</b>{SIGNATURE}", success_kb)
 
 async def handle_admin_text(update, context):
     uid = update.message.from_user.id
@@ -724,7 +745,6 @@ async def handle_admin_text(update, context):
                 if b.strip(): target.append(html.escape(b.strip())); added += 1
             save_data()
             await update.message.reply_text(f"✅ Đã bổ sung thành công <code>{added}</code> Key vào kho <b>{k_type.upper()}</b> (Tồn kho: <code>{len(target)}</code>)!")
-            await broadcast_all(context, f"📢 **CẬP NHẬT KHO HÀNG REAL-TIME**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n📦 Kho <b>{k_type.upper()}</b> vừa được Admin cấp thêm lô key mới!\n📊 Tồn kho hiện tại: <code>{len(target)} Key</code>.\n\n👉 Nhanh tay truy cập bot để mua ngay nhé!{SIGNATURE}")
         del admin_state[uid]
 
 flask_app = Flask(__name__)
@@ -753,15 +773,13 @@ def sepay():
                     db["total_rev"] += amt
                     
                     if str(tid) in db["sellers"]:
-                        db["sellers"][str(tid)]["daily_rev"] = db["sellers"][str(tid)].get("daily_rev", 0) + amt
+                        db["sellers"][str(tid]]["daily_rev"] = db["sellers"][str(tid)].get("daily_rev", 0) + amt
 
                     time_str = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
                     u['deposit_history'].append(f"[{time_str}] Nạp tự động SePay (+{amt:,}đ)")
                     if len(u['deposit_history']) > 20: u['deposit_history'].pop(0)
                     save_data()
                     
-                    # Tự động gửi file backup database về Admin khi có khách nạp tiền thành công
-                    # (Lưu ý: đoạn này chạy ngầm nên cần context bot thông qua asyncio loop hoặc gửi trực tiếp qua httpx api telegram)
                     try:
                         msg = (
                             f"🎉 **NẠP TIỀN TỰ ĐỘNG THÀNH CÔNG!**\n"
@@ -772,9 +790,19 @@ def sepay():
                         )
                         httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": tid, "text": msg, "parse_mode": "HTML"})
                         
-                        # Gửi file backup database cho Admin
+                        # Tự động gửi thông báo nạp tiền thẳng lên nhóm khách hàng và backup cho Admin
+                        dep_group_msg = (
+                            f"💳 **CÓ GIAO DỊCH NẠP TIỀN THÀNH CÔNG!**\n"
+                            f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                            f"👤 Khách hàng ID: <code>{tid}</code>\n"
+                            f"💵 Số tiền nạp: <b>+{amt:,}đ</b>\n"
+                            f"⏱️ Thời gian: {time_str}"
+                            f"{SIGNATURE}"
+                        )
+                        httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": LOG_GROUP_ID, "text": dep_group_msg, "parse_mode": "HTML"})
+                        
                         with open(DB_FILE, "rb") as f_bak:
-                            httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument", data={"chat_id": ADMIN_ID, "caption": "🛡️ [AUTO BACKUP] Cập nhật database sau khi khách nạp tiền thành công!"}, files={"document": f_bak})
+                            httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument", data={"chat_id": ADMIN_ID, "caption": f"🛡️ [AUTO BACKUP] Cập nhật database sau khi User {tid} nạp {amt:,}đ!"}, files={"document": f_bak})
                     except: pass
     return jsonify({"success": True}), 200
 
