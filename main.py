@@ -10,7 +10,7 @@ admin_list = {ADMIN_ID}
 
 LOG_GROUP_ID = -1003912025872
 CLIENT_GROUP_LINK = "https://t.me/mizze_lebin" 
-SIGNATURE = "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚡ 🔮 **MIZZE CYBERPUNK STORE** 🔮 ⚡"
+SIGNATURE = "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚡ 🔮 **MIZZE CYBERPUNK NEXUS** 🔮 ⚡"
 BANNER_URL = "https://files.catbox.moe/f01erm.jpeg"
 CHANNEL_URL = "https://t.me/mizze_store"
 ADMIN_CONTACT = "https://t.me/lebindz"
@@ -48,8 +48,18 @@ def save_data():
     try:
         today_str = datetime.datetime.now().strftime("%Y-%m-%d")
         if db.get("last_reset_date") != today_str:
-            for s_info in db["sellers"].values(): s_info["daily_rev"] = 0
+            expired_sellers = []
+            for s_id, s_info in db["sellers"].items():
+                rev = s_info.get("daily_rev", 0)
+                target = s_info.get("target", 500000)
+                if rev < target:
+                    expired_sellers.append(s_id)
+            db["_expired_sellers_yesterday"] = expired_sellers
+
+            for s_info in db["sellers"].values(): 
+                s_info["daily_rev"] = 0
             db["last_reset_date"] = today_str
+
         with open(DB_FILE, "w", encoding="utf-8") as f:
             json.dump(db, f, ensure_ascii=False, indent=4)
     except: pass
@@ -59,7 +69,7 @@ async def auto_backup_to_admin(context):
         if os.path.exists(DB_FILE):
             with open(DB_FILE, "rb") as f:
                 for adm in admin_list:
-                    await context.bot.send_document(chat_id=adm, document=f, filename="database_backup.json", caption="🛡️ **[AUTO BACKUP SYSTEM]**\nFile dữ liệu database mới nhất đã được sao lưu tự động an toàn tuyệt đối!")
+                    await context.bot.send_document(chat_id=adm, document=f, filename="database_backup.json", caption="🛡️ **[SYSTEM BACKUP]**\nDữ liệu database đã được sao lưu an toàn tuyệt đối!")
     except: pass
 
 admin_state = {}
@@ -93,40 +103,62 @@ async def edit_or_send(query, text, reply_markup=None):
         try: await query.message.reply_text(text, reply_markup=reply_markup, parse_mode="HTML")
         except: pass
 
+async def check_seller_quotas_on_startup(context):
+    expired = db.pop("_expired_sellers_yesterday", [])
+    if expired:
+        for s_id in expired:
+            if s_id in db["sellers"]:
+                del db["sellers"][s_id]
+                save_data()
+                try:
+                    msg = (
+                        f"🚨 ⚡ **THÔNG BÁO THU HỒI QUYỀN SELLER** ⚡ 🚨\n"
+                        f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        f"❌ Doanh thu ngày hôm qua của bạn không đạt chỉ tiêu hệ thống.\n"
+                        f"👉 Quyền Seller đã tự động hủy. Tài khoản chuyển về cấp độ Member chuẩn."
+                        f"{SIGNATURE}"
+                    )
+                    await context.bot.send_message(chat_id=int(s_id), text=msg, parse_mode="HTML")
+                    await context.bot.send_message(chat_id=LOG_GROUP_ID, text=f"⚠️ **HỆ THỐNG ĐÃ TỰ ĐỘNG HỦY QUYỀN SELLER ID:** <code>{s_id}</code> do trượt chỉ tiêu ngày!", parse_mode="HTML")
+                except: pass
+
 async def show_main_menu(update, context):
     uid = update.effective_user.id
     save_data()
+    await check_seller_quotas_on_startup(context)
+
     if not db["bot_active"] and not is_admin(uid):
-        maint_text = f"🚧 **HỆ THỐNG ĐANG BẢO TRÌ NÂNG CẤP** 🚧\n\n<i>Bot đang tạm dừng để bảo trì hệ thống. Vui lòng quay lại sau ít phút nhé!</i>{SIGNATURE}"
+        maint_text = f"🚧 🛑 **HỆ THỐNG BẢO TRÌ NÂNG CẤP** 🛑 🚧\n\n<i>Trạm dịch vụ đang tạm khóa để tối ưu hóa lõi mạng. Vui lòng quay lại sau ít phút!</i>{SIGNATURE}"
         if update.message: await update.message.reply_text(maint_text, parse_mode="HTML")
         elif update.callback_query: await update.callback_query.message.reply_text(maint_text, parse_mode="HTML")
         return
 
     u = get_u(uid)
-    role_badge = "👑 [ADMIN / VIP SELLER]" if is_admin(uid) else ("💎 [SELLER PARTNER]" if is_seller(uid) else "🛡️ [MEMBER]")
+    role_badge = "👑 ⟦ ADMIN / MASTER VIP ⟧" if is_admin(uid) else ("💎 ⟦ SELLER PARTNER ⟧" if is_seller(uid) else "🛡️ ⟦ MEMBER STANDARD ⟧")
+    
     text = (
-        f"🌌 🔮 **MIZZE CYBERPUNK - ULTIMATE STORE** 🔮 🌌\n"
-        f"✨ Cấp bậc: {role_badge}\n\n"
-        f"📢 **Kênh Thông Báo:** <a href='{CHANNEL_URL}'>🔗 Tham Gia Kênh</a>\n"
-        f"👑 **Admin Hỗ Trợ:** <a href='{ADMIN_CONTACT}'>💬 Liên Hệ Ngay</a>\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"💳 **Tổng Nạp:** <code>{u['total_deposit']:,}đ</code> | 💎 **Số Dư Ví:** <b>{u['balance']:,}đ</b>\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"📦 **📊 KHO HÀNG REAL-TIME:**\n"
-        f"  • ⚡ **1H:** <code>[{len(db['s_1h'])}]</code> | 💎 **1D:** <code>[{len(db['s_1d'])}]</code>\n"
-        f"  • 👑 **7D:** <code>[{len(db['s_7d'])}]</code> | 🚀 **30D:** <code>[{len(db['s_30d'])}]</code>"
+        f"┏━━━━━━✦ <b>M I Z Z E  N E X U S</b> ✦━━━━━━┓\n"
+        f"┃ 👤 <b>Cấp độ:</b> {role_badge}\n"
+        f"┃ 💎 <b>Số dư ví:</b> <code>{u['balance']:,} VNĐ</code>\n"
+        f"┃ 💳 <b>Tổng nạp:</b> <code>{u['total_deposit']:,} VNĐ</code>\n"
+        f"┗━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n\n"
+        f"📡 **KÊNH & TRỢ GIÚP:**\n"
+        f"  • 🌐 Kênh thông báo: <a href='{CHANNEL_URL}'>[ Bấm vào đây ]</a>\n"
+        f"  • 💬 Hỗ trợ trực tuyến: <a href='{ADMIN_CONTACT}'>[ Liên hệ Admin ]</a>\n\n"
+        f"📦 **KHO LƯU TRỮ KEY HỆ THỐNG:**\n"
+        f"  ⚡ <b>Gói 1H:</b> <code>[{len(db['s_1h'])} key]</code> | 💎 <b>Gói 1D:</b> <code>[{len(db['s_1d'])} key]</code>\n"
+        f"  👑 <b>Gói 7D:</b> <code>[{len(db['s_7d'])} key]</code> | 🚀 <b>Gói 30D:</b> <code>[{len(db['s_30d'])} key]</code>"
         f"{SIGNATURE}"
     )
     
-    # Giao diện Button mới hoàn toàn: Sang trọng, màu sắc hiện đại, bố cục cân đối
     kb_buttons = [
-        [InlineKeyboardButton("💎 [ CỬA HÀNG MUA KEY ]", callback_data='menu_shop'), InlineKeyboardButton("💳 [ NẠP TIỀN VÍ ]", callback_data='menu_deposit')],
-        [InlineKeyboardButton("🔑 [ KHO KEY CỦA TÔI ]", callback_data='my_keys'), InlineKeyboardButton("👤 [ TÀI KHOẢN ]", callback_data='menu_account')],
-        [InlineKeyboardButton("🧾 [ LỊCH SỬ NẠP ]", callback_data='hist_deposit'), InlineKeyboardButton("🛍️ [ LỊCH SỬ MUA ]", callback_data='hist_buy')],
+        [InlineKeyboardButton("🔮 [ TRUNG TÂM MUA KEY ]", callback_data='menu_shop'), InlineKeyboardButton("💳 [ NẠP TIỀN TỰ ĐỘNG ]", callback_data='menu_deposit')],
+        [InlineKeyboardButton("🔑 [ KHO KEY CỦA TÔI ]", callback_data='my_keys'), InlineKeyboardButton("👤 [ TÀI KHOẢN CÁ NHÂN ]", callback_data='menu_account')],
+        [InlineKeyboardButton("🧾 [ LỊCH SỬ NẠP ]", callback_data='hist_deposit'), InlineKeyboardButton("🛍️ [ LỊCH SỬ MUA HÀNG ]", callback_data='hist_buy')],
     ]
-    if is_seller(uid) and not is_admin(uid): kb_buttons.append([InlineKeyboardButton("📊 [ THỐNG KÊ DOANH THU SELLER ]", callback_data='seller_stats')])
-    if is_admin(uid): kb_buttons.append([InlineKeyboardButton("⚙️ [ BẢNG QUẢN TRỊ ADMIN ]", callback_data='admin_panel')])
-    else: kb_buttons.append([InlineKeyboardButton("💬 [ HỖ TRỢ ]", url=SUPPORT_CONTACT), InlineKeyboardButton("🚀 [ ĐĂNG KÝ SELLER ]", callback_data='register_seller')])
+    if is_seller(uid) and not is_admin(uid): kb_buttons.append([InlineKeyboardButton("📊 [ DOANH THU & CHỈ TIÊU SELLER ]", callback_data='seller_stats')])
+    if is_admin(uid): kb_buttons.append([InlineKeyboardButton("⚙️ [ TRẠM QUẢN TRỊ ADMIN ]", callback_data='admin_panel')])
+    else: kb_buttons.append([InlineKeyboardButton("🎧 [ HỖ TRỢ KHÁCH HÀNG ]", url=SUPPORT_CONTACT), InlineKeyboardButton("🚀 [ ĐĂNG KÝ SELLER ]", callback_data='register_seller')])
 
     kb = InlineKeyboardMarkup(kb_buttons)
     try:
@@ -149,7 +181,7 @@ async def button_handler(update, context):
     query = update.callback_query
     uid = query.from_user.id
     if check_spam(uid):
-        await query.answer("⚠️ Thao tác quá nhanh, hãy từ từ thôi nhé!", show_alert=True)
+        await query.answer("⚠️ Thao tác quá nhanh! Bình tĩnh lại nhé.", show_alert=True)
         return
     await query.answer()
     u = get_u(uid)
@@ -160,42 +192,42 @@ async def button_handler(update, context):
     if data == 'back_menu': await show_main_menu(update, context)
     elif data.startswith('copy_memo_'):
         memo_text = data.replace('copy_memo_', '')
-        await query.answer(f"📋 Đã sao chép nội dung: [{memo_text}]", show_alert=True)
+        await query.answer(f"📋 Đã copy nội dung: [{memo_text}]", show_alert=True)
     elif data.startswith('copy_val_'):
-        val_text = data.replace('copy_val_', '')
-        await query.answer(f"📋 Đã sao chép thành công!", show_alert=True)
+        await query.answer(f"📋 Đã sao chép key thành công!", show_alert=True)
     elif data == 'register_seller':
-        await edit_or_send(query, f"🚀 **ĐĂNG KÝ SELLER PARTNER**\nLiên hệ ngay Admin để được nhận ưu đãi: <a href='{ADMIN_CONTACT}'>Bấm vào đây</a>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ [ QUAY LẠI ]", callback_data='back_menu')]]))
+        await edit_or_send(query, f"🚀 **ĐĂNG KÝ SELLER PARTNER**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nLiên hệ ngay Admin để nhận chính sách giá sỉ ưu đãi:\n👉 <a href='{ADMIN_CONTACT}'>Bấm vào đây liên hệ Admin</a>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ ⟦ QUAY LẠI ⟧", callback_data='back_menu')]]))
     elif data == 'my_keys':
-        keys_list = "\n".join([f"• <code>{k}</code>" for k in u['my_keys']]) if u['my_keys'] else "<i>Bạn chưa sở hữu key nào. Hãy mua ngay tại cửa hàng!</i>"
-        await edit_or_send(query, f"🔑 **KHO KEY CỦA TÔI**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n{keys_list}\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n💡 <i>Key của bạn được lưu vĩnh viễn tại đây!</i>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("🛒 [ MUA THÊM KEY ]", callback_data='menu_shop')], [InlineKeyboardButton("◀️ [ QUAY LẠI ]", callback_data='back_menu')]]))
+        keys_list = "\n".join([f"• <code>{k}</code>" for k in u['my_keys']]) if u['my_keys'] else "<i>Kho key cá nhân đang trống. Hãy mua hàng tại cửa hàng!</i>"
+        await edit_or_send(query, f"🔑 **KHO KEY ĐÃ SỞ HỮU**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n{keys_list}\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n💡 <i>Dữ liệu được lưu trữ vĩnh viễn trên trạm hệ thống!</i>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("🔮 ⟦ MUA THÊM KEY ⟧", callback_data='menu_shop')], [InlineKeyboardButton("◀️ ⟦ QUAY LẠI ⟧", callback_data='back_menu')]]))
     elif data == 'seller_stats':
         s_info = db["sellers"].get(str(uid), {"daily_rev": 0, "target": 500000})
         rev, target = s_info["daily_rev"], s_info.get("target", 500000)
-        status = "✅ ĐÃ ĐẠT CHỈ TIÊU" if rev >= target else "⚠️ CHƯA ĐẠT CHỈ TIÊU"
-        await edit_or_send(query, f"📊 **THỐNG KÊ DOANH THU SELLER**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n- Hôm nay: <code>{rev:,}đ</code>\n- Mục tiêu: <code>{target:,}đ</code>\n- Trạng thái: <b>{status}</b>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ [ QUAY LẠI ]", callback_data='back_menu')]]))
+        percent = min(100, int((rev / target) * 100)) if target > 0 else 100
+        status = "🟢 HOÀN THÀNH XUẤT SẮC" if rev >= target else "🔴 CHƯA ĐẠT CHỈ TIÊU (CẢNH BÁO)"
+        await edit_or_send(query, f"📊 **BẢNG CHỈ TIÊU & DOANH THU SELLER**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n- Doanh thu hôm nay: <code>{rev:,} VNĐ</code>\n- Mục tiêu yêu cầu: <code>{target:,} VNĐ</code>\n- Tiến độ: <b>{percent}%</b>\n- Trạng thái: <b>{status}</b>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ ⟦ QUAY LẠI ⟧", callback_data='back_menu')]]))
     elif data == 'menu_shop':
         kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"⚡ 1H ({p['1h']:,}đ) [{len(db['s_1h'])}]", callback_data='shop_1h'), InlineKeyboardButton(f"💎 1D ({p['1d']:,}đ) [{len(db['s_1d'])}]", callback_data='shop_1d')],
-            [InlineKeyboardButton(f"👑 7D ({p['7d']:,}đ) [{len(db['s_7d'])}]", callback_data='shop_7d'), InlineKeyboardButton(f"🚀 30D ({p['30d']:,}đ) [{len(db['s_30d'])}]", callback_data='shop_30d')],
-            [InlineKeyboardButton("💳 [ NẠP THÊM TIỀN ]", callback_data='menu_deposit')],
-            [InlineKeyboardButton("◀️ [ QUAY LẠI MENU ]", callback_data='back_menu')]
+            [InlineKeyboardButton(f"⚡ 1H ➔ {p['1h']:,}đ [{len(db['s_1h'])}]", callback_data='shop_1h'), InlineKeyboardButton(f"💎 1D ➔ {p['1d']:,}đ [{len(db['s_1d'])}]", callback_data='shop_1d')],
+            [InlineKeyboardButton(f"👑 7D ➔ {p['7d']:,}đ [{len(db['s_7d'])}]", callback_data='shop_7d'), InlineKeyboardButton(f"🚀 30D ➔ {p['30d']:,}đ [{len(db['s_30d'])}]", callback_data='shop_30d')],
+            [InlineKeyboardButton("💳 [ NẠP THÊM TIỀN VÀO VÍ ]", callback_data='menu_deposit')],
+            [InlineKeyboardButton("◀️ [ QUAY LẠI MENU CHÍNH ]", callback_data='back_menu')]
         ])
-        await edit_or_send(query, f"🛒 **CỬA HÀNG MUA KEY TỰ ĐỘNG**\n- Số dư: <b>{u['balance']:,}đ</b>\n- Cấp bậc: {'SELLER VIP' if is_s else 'MEMBER'}{SIGNATURE}", kb)
+        await edit_or_send(query, f"🔮 **TRUNG TÂM MUA GÓI TỰ ĐỘNG**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n- Ví hiện tại: <b>{u['balance']:,} VNĐ</b>\n- Bảng giá áp dụng: <b>{'SELLER (GIÁ ƯU ĐÃI)' if is_s else 'MEMBER'}</b>{SIGNATURE}", kb)
     elif data.startswith('shop_'):
         kt = data.split('_')[1]
         price, kho = {'1h': (p['1h'], db['s_1h']), '1d': (p['1d'], db['s_1d']), '7d': (p['7d'], db['s_7d']), '30d': (p['30d'], db['s_30d'])}[kt]
         kb = InlineKeyboardMarkup([
             [InlineKeyboardButton("1️⃣ Mua 1 Key", callback_data=f"buyq_{kt}_1"), InlineKeyboardButton("2️⃣ Mua 2 Key", callback_data=f"buyq_{kt}_2")],
             [InlineKeyboardButton("5️⃣ Mua 5 Key", callback_data=f"buyq_{kt}_5"), InlineKeyboardButton("🔟 Mua 10 Key", callback_data=f"buyq_{kt}_10")],
-            [InlineKeyboardButton("✏️ [ NHẬP SỐ LƯỢNG TÙY Ý ]", callback_data=f"buyq_custom_{kt}")],
+            [InlineKeyboardButton("✏️ [ NHẬP SỐ LƯỢNG TÙY CHỈNH ]", callback_data=f"buyq_custom_{kt}")],
             [InlineKeyboardButton("◀️ [ QUAY LẠI CỬA HÀNG ]", callback_data='menu_shop')]
         ])
-        await edit_or_send(query, f"📦 **GÓI DỊCH VỤ: {kt.upper()}**\n- Giá niêm yết: <b>{price:,}đ / key</b>\n- Tồn kho sẵn sàng: <b>{len(kho)} key</b>", kb)
+        await edit_or_send(query, f"📦 **GÓI DỊCH VỤ: {kt.upper()}**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n- Đơn giá: <b>{price:,} VNĐ / key</b>\n- Tồn kho khả dụng: <b>{len(kho)} key</b>", kb)
     elif data.startswith('buyq_custom_'):
         kt = data.split('_')[2]
         admin_state[uid] = f"buy_custom_{kt}"
-        await edit_or_send(query, f"💬 **Vui lòng nhập số lượng cần mua vào khung chat:**", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ [ QUAY LẠI ]", callback_data=f"shop_{kt}")]]))
+        await edit_or_send(query, f"💬 **Nhập số lượng key bạn muốn mua vào khung chat:**", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ ⟦ QUAY LẠI ⟧", callback_data=f"shop_{kt}")]]))
     elif data.startswith('buyq_'):
         _, kt, qty = data.split('_')
         await process_purchase(query, context, uid, kt, int(qty))
@@ -203,66 +235,77 @@ async def button_handler(update, context):
         kb_dep = InlineKeyboardMarkup([
             [InlineKeyboardButton("💵 10.000đ", callback_data='pre_qr_10000'), InlineKeyboardButton("💵 50.000đ", callback_data='pre_qr_50000')],
             [InlineKeyboardButton("💵 100.000đ", callback_data='pre_qr_100000'), InlineKeyboardButton("💵 200.000đ", callback_data='pre_qr_200000')],
-            [InlineKeyboardButton("✏️ [ NHẬP SỐ TIỀN TÙY CHỈNH ]", callback_data='pre_qr_custom')],
-            [InlineKeyboardButton("◀️ [ QUAY LẠI MENU ]", callback_data='back_menu')]
+            [InlineKeyboardButton("✏️ [ NHẬP SỐ TIỀN TÙY Ý ]", callback_data='pre_qr_custom')],
+            [InlineKeyboardButton("◀️ [ QUAY LẠI MENU CHÍNH ]", callback_data='back_menu')]
         ])
-        await edit_or_send(query, f"💳 **HỆ THỐNG NẠP TIỀN TỰ ĐỘNG 24/7**\nChọn nhanh hạn mức nạp bên dưới:", kb_dep)
+        await edit_or_send(query, f"💳 **CỔNG NẠP TIỀN TỰ ĐỘNG 24/7**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n<i>Chọn nhanh hạn mức hoặc nhập tự do:</i>", kb_dep)
     elif data.startswith('pre_qr_'):
         sub = data.replace('pre_qr_', '')
         if sub == 'custom':
             admin_state[uid] = 'waiting_deposit'
-            await edit_or_send(query, f"💬 **Vui lòng nhập số tiền cần nạp vào khung chat:**", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ [ QUAY LẠI ]", callback_data='menu_deposit')]]))
+            await edit_or_send(query, f"💬 **Nhập số tiền bạn muốn nạp vào khung chat:**", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ ⟦ QUAY LẠI ⟧", callback_data='menu_deposit')]]))
             return
         await show_copy_warning(query, uid, int(sub))
     elif data.startswith('show_qr_'):
         await send_qr(query, context, uid, int(data.replace('show_qr_', '')))
     elif data == 'menu_account':
-        await edit_or_send(query, f"👤 **THÔNG TIN TÀI KHOẢN**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n- ID: <code>{uid}</code>\n- Số dư: <b>{u['balance']:,}đ</b>\n- Tổng nạp: <b>{u['total_deposit']:,}đ</b>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ [ QUAY LẠI MENU ]", callback_data='back_menu')]]))
+        await edit_or_send(query, f"👤 **HỒ SƠ TÀI KHOẢN**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n- ID Telegram: <code>{uid}</code>\n- Số dư ví: <b>{u['balance']:,} VNĐ</b>\n- Tổng nạp tích lũy: <b>{u['total_deposit']:,} VNĐ</b>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ [ QUAY LẠI MENU ]", callback_data='back_menu')]]))
     elif data == 'hist_deposit':
-        h = "\n".join(u['deposit_history'][-10:]) if u['deposit_history'] else "Chưa có lịch sử nạp."
-        await edit_or_send(query, f"🧾 **LỊCH SỬ NẠP TIỀN**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n{h}{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ [ QUAY LẠI ]", callback_data='back_menu')]]))
+        h = "\n".join(u['deposit_history'][-10:]) if u['deposit_history'] else "Chưa ghi nhận lịch sử nạp."
+        await edit_or_send(query, f"🧾 **LỊCH SỬ NẠP TIỀN**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n{h}{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ ⟦ QUAY LẠI ⟧", callback_data='back_menu')]]))
     elif data == 'hist_buy':
-        b = "\n".join(u['buy_history'][-10:]) if u['buy_history'] else "Chưa có lịch sử mua."
-        await edit_or_send(query, f"🛍️ **LỊCH SỬ MUA HÀNG**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n{b}{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ [ QUAY LẠI ]", callback_data='back_menu')]]))
+        b = "\n".join(u['buy_history'][-10:]) if u['buy_history'] else "Chưa ghi nhận lịch sử mua hàng."
+        await edit_or_send(query, f"🛍️ **LỊCH SỬ MUA HÀNG**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n{b}{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ ⟦ QUAY LẠI ⟧", callback_data='back_menu')]]))
     elif data == 'admin_panel' and is_admin(uid):
         st = "🟢 Hoạt Động" if db["bot_active"] else "🔴 Đang Bảo Trì"
-        await edit_or_send(query, f"🛡️ **BẢNG QUẢN TRỊ ADMIN**\nTrạng thái bot: <b>{st}</b>", InlineKeyboardMarkup([
+        await edit_or_send(query, f"🛡️ **TRẠM QUẢN TRỊ ADMIN**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n- Trạng thái: <b>{st}</b>", InlineKeyboardMarkup([
             [InlineKeyboardButton("🔴 Tắt Bot (Bảo Trì)" if db["bot_active"] else "🟢 Bật Lại Bot", callback_data='toggle_bot_status')],
             [InlineKeyboardButton("📊 Thống Kê", callback_data='ad_stats'), InlineKeyboardButton("💾 Lấy Backup", callback_data='ad_get_backup')],
             [InlineKeyboardButton("💸 Cộng Tiền", callback_data='ad_bal'), InlineKeyboardButton("📉 Trừ Tiền", callback_data='ad_subbal')],
-            [InlineKeyboardButton("👥 Quản Lý Seller", callback_data='ad_manageseller'), InlineKeyboardButton("📦 Kho Key", callback_data='ad_checkkey')],
+            [InlineKeyboardButton("👥 Quản Lý Seller & Chỉ Tiêu", callback_data='ad_manageseller'), InlineKeyboardButton("📦 Quản Lý Kho Key", callback_data='ad_checkkey')],
             [InlineKeyboardButton("🏠 [ VỀ MENU CHÍNH ]", callback_data='back_menu')]
         ]))
     elif data == 'toggle_bot_status' and is_admin(uid):
         db["bot_active"] = not db["bot_active"]
         save_data()
-        await query.answer("Đã đổi trạng thái bot thành công!", show_alert=True)
+        await query.answer("Đã chuyển đổi trạng thái bot!", show_alert=True)
         await button_handler(update, context)
     elif data == 'ad_stats' and is_admin(uid):
         tot_k = len(db['s_1h']) + len(db['s_1d']) + len(db['s_7d']) + len(db['s_30d'])
-        await edit_or_send(query, f"📊 **THỐNG KÊ HỆ THỐNG**\n- Tổng User: {len(db['users'])}\n- Doanh thu: {db['total_rev']:,}đ\n- Tồn kho: {tot_k} key", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ [ QUAY LẠI ]", callback_data='admin_panel')]]))
+        await edit_or_send(query, f"📊 **THỐNG KÊ HỆ THỐNG**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n- Tổng User: {len(db['users'])}\n- Tổng Seller: {len(db['sellers'])}\n- Doanh thu: {db['total_rev']:,} VNĐ\n- Key tồn kho: {tot_k}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ ⟦ QUAY LẠI ⟧", callback_data='admin_panel')]]))
     elif data == 'ad_get_backup' and is_admin(uid):
         await auto_backup_to_admin(context)
-        await query.answer("Đã gửi file backup về chat riêng!", show_alert=True)
+        await query.answer("Đã gửi file backup về tin nhắn riêng!", show_alert=True)
     elif data == 'ad_bal' and is_admin(uid):
         admin_state[uid] = 'add_bal'
-        await edit_or_send(query, f"💬 Nhập theo định dạng: `[ID] [Số_tiền]`")
+        await edit_or_send(query, f"💬 Nhập theo cú pháp: `[ID] [Số_tiền]`")
     elif data == 'ad_subbal' and is_admin(uid):
         admin_state[uid] = 'sub_bal'
-        await edit_or_send(query, f"💬 Nhập theo định dạng: `[ID] [Số_tiền]`")
+        await edit_or_send(query, f"💬 Nhập theo cú pháp: `[ID] [Số_tiền]`")
     elif data == 'ad_manageseller' and is_admin(uid):
-        await edit_or_send(query, f"👥 **QUẢN LÝ SELLER**", InlineKeyboardMarkup([
-            [InlineKeyboardButton("➕ Thêm Seller", callback_data='add_seller_prompt'), InlineKeyboardButton("🗑️ Xóa Seller", callback_data='del_seller_prompt')],
-            [InlineKeyboardButton("◀️ [ QUAY LẠI ]", callback_data='admin_panel')]
+        await edit_or_send(query, f"👥 **QUẢN LÝ SELLER & CHỈ TIÊU**", InlineKeyboardMarkup([
+            [InlineKeyboardButton("➕ Thêm / Sửa Chỉ Tiêu Seller", callback_data='add_seller_prompt')],
+            [InlineKeyboardButton("🗑️ Xóa Quyền Seller", callback_data='del_seller_prompt')],
+            [InlineKeyboardButton("◀️ ⟦ QUAY LẠI ⟧", callback_data='admin_panel')]
         ]))
     elif data == 'add_seller_prompt' and is_admin(uid):
         admin_state[uid] = 'add_seller_id'
-        await edit_or_send(query, f"💬 Nhập: `[ID] [Mục_tiêu_ngày]`")
+        await edit_or_send(query, f"💬 Nhập theo cú pháp:\n`[ID] [Mục_tiêu_doanh_thu_ngày]`\n(Ví dụ: `7976468365 500000`)")
     elif data == 'del_seller_prompt' and is_admin(uid):
         admin_state[uid] = 'del_seller_id'
-        await edit_or_send(query, f"💬 Nhập ID Seller cần xóa:")
+        await edit_or_send(query, f"💬 Nhập ID Telegram của Seller cần xóa quyền:")
     elif data == 'ad_checkkey' and is_admin(uid):
-        await edit_or_send(query, f"📦 **TỒN KHO HIỆN TẠI:**\n- 1H: {len(db['s_1h'])}\n- 1D: {len(db['s_1d'])}\n- 7D: {len(db['s_7d'])}\n- 30D: {len(db['s_30d'])}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ [ QUAY LẠI ]", callback_data='admin_panel')]]))
+        await edit_or_send(query, f"📦 **QUẢN LÝ KHO KEY**\nChọn kho cần thêm key mới:", InlineKeyboardMarkup([
+            [InlineKeyboardButton("⚡ Kho 1H", callback_data='k_s1h'), InlineKeyboardButton("💎 Kho 1D", callback_data='k_s1d')],
+            [InlineKeyboardButton("👑 Kho 7D", callback_data='k_s7d'), InlineKeyboardButton("🚀 Kho 30D", callback_data='k_s30d')],
+            [InlineKeyboardButton("◀️ ⟦ QUAY LẠI ⟧", callback_data='admin_panel')]
+        ]))
+    elif data.startswith('k_') and is_admin(uid):
+        k_type = data.replace('k_', '')
+        admin_state[uid] = f"addk_{k_type}"
+        m_map = {'s1h': db['s_1h'], 's1d': db['s_1d'], 's7d': db['s_7d'], 's30d': db['s_30d']}
+        cur_len = len(m_map.get(k_type, []))
+        await edit_or_send(query, f"📦 **THÊM KEY VÀO KHO {k_type.upper()}**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n- Tồn kho hiện tại: <b>{cur_len} key</b>\n\n📝 <i>Dán danh sách key vào khung chat (Mỗi key nằm trên một dòng riêng biệt). Hệ thống sẽ tự động nhận diện từng key một!</i>", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ ⟦ QUAY LẠI ⟧", callback_data='ad_checkkey')]]))
 
 async def show_copy_warning(query, uid, amount):
     memo = f"NAP {uid}"
@@ -275,7 +318,7 @@ async def show_copy_warning(query, uid, amount):
     )
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("📋 [ COPY NỘI DUNG CK ]", callback_data=f"copy_memo_{memo}")],
-        [InlineKeyboardButton("✅ [ TÔI ĐÃ COPY - XEM QR ]", callback_data=f"show_qr_{amount}")],
+        [InlineKeyboardButton("✅ [ TÔI ĐÃ COPY - XEM MÃ QR ]", callback_data=f"show_qr_{amount}")],
         [InlineKeyboardButton("◀️ [ QUAY LẠI ]", callback_data='menu_deposit')]
     ])
     await edit_or_send(query, text, kb)
@@ -287,7 +330,7 @@ async def send_qr(query, context, uid, amount):
         f"💳 **MÃ QR NẠP TIỀN {amount:,}Đ**\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         f"📝 Nội dung CK: <code>{memo}</code>\n"
-        f"👉 <i>Quét mã bằng app ngân hàng để cộng tiền tự động!</i>"
+        f"👉 <i>Quét mã qua app ngân hàng để cộng ví tự động!</i>"
     )
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("📋 [ COPY NỘI DUNG CK ]", callback_data=f"copy_memo_{memo}")],
@@ -308,7 +351,7 @@ async def process_purchase(query, context, uid, kt, qty):
     total = price * qty
 
     if len(kho) < qty:
-        await query.answer(f"❌ Kho không đủ số lượng! Chỉ còn {len(kho)} key.", show_alert=True)
+        await query.answer(f"❌ Kho không đủ số lượng! Hiện chỉ còn {len(kho)} key.", show_alert=True)
         return
     if u['balance'] < total:
         await query.answer("❌ Số dư ví không đủ để thanh toán!", show_alert=True)
@@ -327,14 +370,13 @@ async def process_purchase(query, context, uid, kt, qty):
     keys_str = "\n".join([f"<code>{k}</code>" for k in keys_bought])
     time_str = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
 
-    # Chỉ thông báo các phần quan trọng cho Admin / Nhóm log: Mua gói nào, mấy giờ, ID nào
     try:
         log_msg = (
-            f"🛍️ **CÓ GIAO DỊCH MUA KEY MỚI!**\n"
+            f"🛍️ **GIAO DỊCH MUA KEY MỚI!**\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             f"👤 Khách ID: <code>{uid}</code>\n"
             f"📦 Gói: <b>{qty}x {kt.upper()}</b>\n"
-            f"💵 Tổng tiền: <b>{total:,}đ</b>\n"
+            f"💵 Tổng tiền: <b>{total:,} VNĐ</b>\n"
             f"⏱️ Thời gian: {time_str}"
             f"{SIGNATURE}"
         )
@@ -343,11 +385,11 @@ async def process_purchase(query, context, uid, kt, qty):
 
     first_key = keys_bought[0] if keys_bought else "Mizzebin"
     kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📋 [ COPY KEY ]", callback_data=f"copy_val_{first_key}"), InlineKeyboardButton("📋 [ COPY MẬT KHẨU ]", callback_data=f"copy_val_{first_key}")],
+        [InlineKeyboardButton("📋 [ COPY KEY ]", callback_data=f"copy_val_{first_key}")],
         [InlineKeyboardButton("📂 [ NHÓM NHẬN FILE ]", url=CLIENT_GROUP_LINK)],
         [InlineKeyboardButton("🔑 [ KHO KEY CỦA TÔI ]", callback_data='my_keys'), InlineKeyboardButton("🏠 [ MENU CHÍNH ]", callback_data='back_menu')]
     ])
-    await edit_or_send(query, f"✅ **MUA THÀNH CÔNG {qty} GÓI {kt.upper()}!**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n👇 **Key của bạn:**\n{keys_str}\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n💎 Số dư ví còn lại: <b>{u['balance']:,}đ</b>{SIGNATURE}", kb)
+    await edit_or_send(query, f"✅ **MUA THÀNH CÔNG {qty} GÓI {kt.upper()}!**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n👇 **Danh sách Key của bạn:**\n{keys_str}\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n- Số dư ví còn lại: <b>{u['balance']:,} VNĐ</b>{SIGNATURE}", kb)
 
 async def handle_admin_text(update, context):
     uid = update.message.from_user.id
@@ -377,6 +419,25 @@ async def handle_admin_text(update, context):
         except: await update.message.reply_text("❌ Số tiền không hợp lệ!")
         return
 
+    # Xử lý thêm kho key tự động nhận diện theo dòng
+    if state.startswith('addk_'):
+        k_type = state.replace('addk_', '')
+        del admin_state[uid]
+        m_map = {'s1h': db['s_1h'], 's1d': db['s_1d'], 's7d': db['s_7d'], 's30d': db['s_30d']}
+        target = m_map.get(k_type)
+        if target is not None:
+            added = 0
+            # Nhận diện từng key phân tách theo dòng
+            lines = text.split('\n')
+            for line in lines:
+                clean_key = line.strip()
+                if clean_key:
+                    target.append(html.escape(clean_key))
+                    added += 1
+            save_data()
+            await update.message.reply_text(f"✅ Đã thêm thành công <code>{added}</code> key mới vào kho <b>{k_type.upper()}</b>!\n📦 Tổng tồn kho hiện tại: <b>{len(target)} key</b>")
+        return
+
     if not is_admin(uid): return
     if state == 'add_bal' or state == 'sub_bal':
         try:
@@ -392,15 +453,17 @@ async def handle_admin_text(update, context):
     elif state == 'add_seller_id':
         try:
             parts = text.split()
-            db["sellers"][str(parts[0])] = {"daily_rev": 0, "target": int(parts[1]) if len(parts) > 1 else 500000}
+            sid = str(parts[0])
+            target = int(parts[1]) if len(parts) > 1 else 500000
+            db["sellers"][sid] = {"daily_rev": 0, "target": target}
             save_data()
-            await update.message.reply_text("✅ Thêm Seller thành công!")
-        except: await update.message.reply_text("❌ Sai cú pháp!")
+            await update.message.reply_text(f"✅ Thêm/Cập nhật Seller ID `{sid}` với chỉ tiêu ngày `{target:,} VNĐ` thành công!")
+        except: await update.message.reply_text("❌ Sai cú pháp! Nhập: `[ID] [Mục_tiêu]`")
         del admin_state[uid]
     elif state == 'del_seller_id':
         sid = text.strip()
-        if sid in db["sellers"]: del db["sellers"][sid]; save_data(); await update.message.reply_text("✅ Xóa Seller thành công!")
-        else: await update.message.reply_text("❌ Không tìm thấy ID Seller!")
+        if sid in db["sellers"]: del db["sellers"][sid]; save_data(); await update.message.reply_text("✅ Xóa quyền Seller thành công!")
+        else: await update.message.reply_text("❌ Không tìm thấy ID Seller này!")
         del admin_state[uid]
 
 flask_app = Flask(__name__)
@@ -420,22 +483,13 @@ def sepay():
                 u['balance'] += amt
                 u['total_deposit'] += amt
                 db["total_rev"] += amt
-                if str(tid) in db["sellers"]: db["sellers"][str(tid)]["daily_rev"] = db["sellers"][str(tid)].get("daily_rev", 0) + amt
+                if str(tid) in db["sellers"]: 
+                    db["sellers"][str(tid)]["daily_rev"] = db["sellers"][str(tid)].get("daily_rev", 0) + amt
                 save_data()
                 time_str = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
                 try:
-                    # Gửi tin nhắn cộng tiền cho khách
-                    httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": tid, "text": f"🎉 **NẠP TIỀN THÀNH CÔNG +{amt:,}đ!**\n- Số dư ví mới: <b>{u['balance']:,}đ</b>{SIGNATURE}", "parse_mode": "HTML"})
-                    
-                    # Thông báo quan trọng cho Admin: Nạp tiền thành công, mấy giờ, ID nào
-                    admin_notify = (
-                        f"💳 **CÓ GIAO DỊCH NẠP TIỀN THÀNH CÔNG!**\n"
-                        f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                        f"👤 Khách ID: <code>{tid}</code>\n"
-                        f"💵 Số tiền: <b>+{amt:,}đ</b>\n"
-                        f"⏱️ Thời gian: {time_str}"
-                        f"{SIGNATURE}"
-                    )
+                    httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": tid, "text": f"🎉 **NẠP TIỀN THÀNH CÔNG +{amt:,} VNĐ!**\n- Số dư ví mới: <b>{u['balance']:,} VNĐ</b>{SIGNATURE}", "parse_mode": "HTML"})
+                    admin_notify = f"💳 **NẠP TIỀN THÀNH CÔNG:**\n- Khách ID: <code>{tid}</code>\n- Số tiền: <b>+{amt:,} VNĐ</b>\n- Thời gian: {time_str}{SIGNATURE}"
                     httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": LOG_GROUP_ID, "text": admin_notify, "parse_mode": "HTML"})
                 except: pass
     return jsonify({"success": True}), 200
