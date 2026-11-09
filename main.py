@@ -345,23 +345,14 @@ async def button_handler(update, context):
 
 async def send_qr_direct(query, context, uid, amount):
     memo = f"NAP {uid}"
-    # Sử dụng VietQR chuẩn kèm fallback trực tiếp để đảm bảo ảnh luôn hiển thị ổn định
-    url = f"https://api.vietqr.io/v2/generate"
-    payload = {
-        "accountNo": ACCOUNT_NO,
-        "accountName": ACCOUNT_NAME,
-        "acqId": "970436", # Mã BIN VPBank
-        "amount": amount,
-        "addInfo": memo,
-        "format": "qr",
-        "template": "compact"
-    }
+    # Link QR chuẩn VietQR tốc độ cao không bị lỗi timeout
     photo_url = f"https://img.vietqr.io/image/{BANK_ID}-{ACCOUNT_NO}-compact2.png?amount={amount}&addInfo={quote(memo)}&accountName={quote(ACCOUNT_NAME)}"
     
     text = (
         f"💳 **MÃ QR NẠP {amount:,}Đ**\n"
-        f"📝 Nội dung: <code>{memo}</code>\n"
-        f"👉 <i>Quét mã qua app ngân hàng, số tiền và nội dung đã điền tự động!</i>"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📝 Nội dung CK: <code>{memo}</code>\n"
+        f"👉 <i>Quét mã qua app ngân hàng, số tiền và nội dung đã tự động điền sẵn!</i>"
     )
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("🔄 Kiểm Tra Số Dư", callback_data='menu_account')],
@@ -370,8 +361,10 @@ async def send_qr_direct(query, context, uid, amount):
     try:
         await query.message.delete()
         await context.bot.send_photo(chat_id=uid, photo=photo_url, caption=text, reply_markup=kb, parse_mode="HTML")
-    except:
-        await context.bot.send_message(chat_id=uid, text=text, reply_markup=kb, parse_mode="HTML")
+    except Exception as e:
+        # Fallback nếu lỗi gửi ảnh trực tiếp: Gửi kèm link trực tiếp để khách bấm xem
+        fallback_text = text + f"\n\n🔗 [Bấm vào đây để mở mã QR nạp tiền]({photo_url})"
+        await context.bot.send_message(chat_id=uid, text=fallback_text, reply_markup=kb, parse_mode="HTML", disable_web_page_preview=False)
 
 async def process_purchase(query, context, uid, kt, qty):
     u = get_u(uid)
@@ -436,10 +429,13 @@ async def handle_admin_text(update, context):
         try:
             amt = int(text.replace(".", "").strip())
             memo = f"NAP {uid}"
-            url = f"https://img.vietqr.io/image/{BANK_ID}-{ACCOUNT_NO}-compact2.png?amount={amt}&addInfo={quote(memo)}&accountName={quote(ACCOUNT_NAME)}"
+            photo_url = f"https://img.vietqr.io/image/{BANK_ID}-{ACCOUNT_NO}-compact2.png?amount={amt}&addInfo={quote(memo)}&accountName={quote(ACCOUNT_NAME)}"
             text_qr = f"💳 **MÃ QR NẠP {amt:,}Đ**\n📝 Nội dung: <code>{memo}</code>\n👉 <i>Đã đính kèm ID và số tiền tự động!</i>"
             kb = InlineKeyboardMarkup([[InlineKeyboardButton("🔄 Kiểm Tra Số Dư", callback_data='menu_account')]])
-            await update.message.reply_photo(photo=url, caption=text_qr, reply_markup=kb, parse_mode="HTML")
+            try:
+                await update.message.reply_photo(photo=photo_url, caption=text_qr, reply_markup=kb, parse_mode="HTML")
+            except:
+                await update.message.reply_text(text_qr + f"\n\n🔗 [Bấm vào đây để mở ảnh QR]({photo_url})", reply_markup=kb, parse_mode="HTML", disable_web_page_preview=False)
         except: await update.message.reply_text("❌ Số tiền không hợp lệ!")
         return
 
