@@ -25,6 +25,9 @@ logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=lo
 logger = logging.getLogger(__name__)
 DB_FILE = "database.json"
 
+# Lock chống race condition / bug tài nguyên đồng thời
+buy_lock = threading.Lock()
+
 def load_data():
     default_data = {
         "users": {}, "user_data": {}, "sellers": {},
@@ -84,7 +87,7 @@ def is_seller(uid): return str(uid) in db["sellers"] or uid in admin_list
 
 def check_spam(uid):
     now = time.time()
-    if uid in cooldown_cache and now - cooldown_cache[uid] < 1.2: return True
+    if uid in cooldown_cache and now - cooldown_cache[uid] < 1.0: return True
     if len(cooldown_cache) > 1000: cooldown_cache.clear()
     cooldown_cache[uid] = now
     return False
@@ -183,21 +186,31 @@ async def button_handler(update, context):
     p = db["seller_prices"] if is_s else db["prices"]
 
     if data == 'back_menu': await show_main_menu(update, context)
-    elif data.startswith('copy_val_'):
-        key_val = data.replace('copy_val_', '')
-        await query.answer(f"📋 Đã copy key thành công!", show_alert=True)
+    elif data.startswith('copy_key_'):
+        # Antiexploit / fix copy: Lấy key trực tiếp từ danh sách my_keys dựa vào index an toàn
+        try:
+            idx = int(data.replace('copy_key_', ''))
+            if idx < len(u['my_keys']):
+                full_item = u['my_keys'][idx]
+                real_key = full_item.split('] ')[-1] if '] ' in full_item else full_item
+                await query.answer(f"📋 Key: {real_key}\n(Đã sẵn sàng để copy)", show_alert=True)
+            else:
+                await query.answer("❌ Key không tồn tại!", show_alert=True)
+        except:
+            await query.answer("❌ Lỗi copy key!", show_alert=True)
     elif data == 'register_seller':
         await edit_or_send(query, f"🚀 **ĐĂNG KÝ SELLER**\nLiên hệ Admin: <a href='{ADMIN_CONTACT}'>Bấm vào đây</a>{SIGNATURE}", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại", callback_data='back_menu')]]))
     elif data == 'my_keys':
         kb_keys = []
         if u['my_keys']:
             for idx, k in enumerate(u['my_keys'][-15:], 1):
-                clean_k = k.split('] ')[-1] if '] ' in k else k
-                kb_keys.append([InlineKeyboardButton(f"🔑 {k}", callback_data='none'), InlineKeyboardButton("📋 Copy", callback_data=f"copy_val_{clean_k}")])
+                real_idx = len(u['my_keys']) - 15 + idx - 1 if len(u['my_keys']) > 15 else idx - 1
+                short_k = k[:18] + "..." if len(k) > 18 else k
+                kb_keys.append([InlineKeyboardButton(f"🔑 {short_k}", callback_data='none'), InlineKeyboardButton("📋 Lấy Key", callback_data=f"copy_key_{real_idx}")])
         else:
             kb_keys.append([InlineKeyboardButton("📦 Kho trống, mua ngay!", callback_data='menu_shop')])
         kb_keys.append([InlineKeyboardButton("◀️ Quay Lại", callback_data='back_menu')])
-        await edit_or_send(query, f"🔑 **KHO KEY CỦA BẠN**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n<i>Bấm nút bên cạnh để copy nhanh:</i>{SIGNATURE}", InlineKeyboardMarkup(kb_keys))
+        await edit_or_send(query, f"🔑 **KHO KEY CỦA BẠN**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n<i>Bấm nút 'Lấy Key' để xem toàn bộ key đầy đủ:</i>{SIGNATURE}", InlineKeyboardMarkup(kb_keys))
     elif data == 'seller_stats':
         s_info = db["sellers"].get(str(uid), {"daily_rev": 0, "target": 500000})
         rev, target = s_info["daily_rev"], s_info.get("target", 500000)
@@ -345,7 +358,6 @@ async def button_handler(update, context):
 
 async def send_qr_direct(query, context, uid, amount):
     memo = f"NAP {uid}"
-    # Link QR chuẩn VietQR tốc độ cao không bị lỗi timeout
     photo_url = f"https://img.vietqr.io/image/{BANK_ID}-{ACCOUNT_NO}-compact2.png?amount={amount}&addInfo={quote(memo)}&accountName={quote(ACCOUNT_NAME)}"
     
     text = (
@@ -355,6 +367,7 @@ async def send_qr_direct(query, context, uid, amount):
         f"👉 <i>Quét mã qua app ngân hàng, số tiền và nội dung đã tự động điền sẵn!</i>"
     )
     kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔗 Mở Ảnh QR Trực Tiếp", url=photo_url)],
         [InlineKeyboardButton("🔄 Kiểm Tra Số Dư", callback_data='menu_account')],
         [InlineKeyboardButton("◀️ Quay Lại", callback_data='menu_deposit')]
     ])
@@ -362,35 +375,44 @@ async def send_qr_direct(query, context, uid, amount):
         await query.message.delete()
         await context.bot.send_photo(chat_id=uid, photo=photo_url, caption=text, reply_markup=kb, parse_mode="HTML")
     except Exception as e:
-        # Fallback nếu lỗi gửi ảnh trực tiếp: Gửi kèm link trực tiếp để khách bấm xem
-        fallback_text = text + f"\n\n🔗 [Bấm vào đây để mở mã QR nạp tiền]({photo_url})"
-        await context.bot.send_message(chat_id=uid, text=fallback_text, reply_markup=kb, parse_mode="HTML", disable_web_page_preview=False)
+        await context.bot.send_message(chat_id=uid, text=text + f"\n\n🔗 <a href='{photo_url}'>[Bấm vào đây để xem mã QR nạp tiền]</a>", reply_markup=kb, parse_mode="HTML")
 
 async def process_purchase(query, context, uid, kt, qty):
-    u = get_u(uid)
-    is_s = is_seller(uid)
-    p = db["seller_prices"] if is_s else db["prices"]
-    price, kho = {'1h': (p['1h'], db['s_1h']), '1d': (p['1d'], db['s_1d']), '7d': (p['7d'], db['s_7d']), '30d': (p['30d'], db['s_30d'])}[kt]
-    total = price * qty
+    # Sử dụng Lock chống bug đồng thời (Race Condition) và kiểm tra anti-exploit
+    with buy_lock:
+        u = get_u(uid)
+        is_s = is_seller(uid)
+        p = db["seller_prices"] if is_s else db["prices"]
+        
+        # Chống bug nhập số lượng âm hoặc số 0
+        if qty <= 0:
+            await query.answer("❌ Số lượng không hợp lệ!", show_alert=True)
+            return
 
-    if len(kho) < qty:
-        await query.answer(f"❌ Kho không đủ! Còn {len(kho)} key.", show_alert=True)
-        return
-    if u['balance'] < total:
-        await query.answer("❌ Số dư ví không đủ!", show_alert=True)
-        return
+        price, kho = {'1h': (p['1h'], db['s_1h']), '1d': (p['1d'], db['s_1d']), '7d': (p['7d'], db['s_7d']), '30d': (p['30d'], db['s_30d'])}[kt]
+        total = price * qty
 
-    u['balance'] -= total
-    db["total_rev"] += total
-    if is_s and not is_admin(uid):
-        db["sellers"][str(uid)]["daily_rev"] = db["sellers"][str(uid)].get("daily_rev", 0) + total
+        if len(kho) < qty:
+            await query.answer(f"❌ Kho không đủ! Còn {len(kho)} key.", show_alert=True)
+            return
+        if u['balance'] < total:
+            await query.answer("❌ Số dư ví không đủ!", show_alert=True)
+            return
 
-    keys_bought = [kho.pop(0) for _ in range(qty)]
-    for k in keys_bought: u['my_keys'].append(f"[{kt.upper()}] {k}")
-    save_data()
+        # Trừ tiền an toàn
+        u['balance'] -= total
+        db["total_rev"] += total
+        if is_s and not is_admin(uid):
+            db["sellers"][str(uid)]["daily_rev"] = db["sellers"][str(uid)].get("daily_rev", 0) + total
 
-    keys_str = "\n".join([f"<code>{k}</code>" for k in keys_bought])
-    time_str = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
+        keys_bought = [kho.pop(0) for _ in range(qty)]
+        for k in keys_bought: 
+            u['my_keys'].append(f"[{kt.upper()}] {k}")
+        
+        # Lưu lịch sử mua hàng
+        time_str = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
+        u['buy_history'].append(f"• Mua {qty}x {kt.upper()} - {total:,}đ ({time_str})")
+        save_data()
 
     try:
         log_msg = f"🛍️ **MUA HÀNG THÀNH CÔNG:**\n- Khách ID: <code>{uid}</code>\n- Gói: {qty}x {kt.upper()}\n- Tổng: {total:,}đ\n- Thời gian: {time_str}{SIGNATURE}"
@@ -399,12 +421,15 @@ async def process_purchase(query, context, uid, kt, qty):
 
     kb_buy_res = []
     for k in keys_bought:
-        kb_buy_res.append([InlineKeyboardButton(f"🔑 {k}", callback_data='none'), InlineKeyboardButton("📋 Copy", callback_data=f"copy_val_{k}")])
+        short_k = k[:18] + "..." if len(k) > 18 else k
+        real_idx = len(u['my_keys']) - len(keys_bought) + keys_bought.index(k)
+        kb_buy_res.append([InlineKeyboardButton(f"🔑 {short_k}", callback_data='none'), InlineKeyboardButton("📋 Lấy Key", callback_data=f"copy_key_{real_idx}")])
     kb_buy_res.append([InlineKeyboardButton("📂 Nhóm Nhận File", url=CLIENT_GROUP_LINK)])
     kb_buy_res.append([InlineKeyboardButton("🔑 Kho Key", callback_data='my_keys'), InlineKeyboardButton("🏠 Menu", callback_data='back_menu')])
 
     kb = InlineKeyboardMarkup(kb_buy_res)
-    await edit_or_send(query, f"✅ **MUA THÀNH CÔNG {qty} GÓI {kt.upper()}!**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n👇 **Key của bạn:**\n{keys_str}\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n- Số dư còn: <b>{u['balance']:,}đ</b>{SIGNATURE}", kb)
+    keys_display = "\n".join([f"<code>{k}</code>" for k in keys_bought])
+    await edit_or_send(query, f"✅ **MUA THÀNH CÔNG {qty} GÓI {kt.upper()}!**\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n👇 **Key của bạn (Bấm 'Lấy Key' để xem chi tiết):**\n{keys_display}\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n- Số dư còn: <b>{u['balance']:,}đ</b>{SIGNATURE}", kb)
 
 async def handle_admin_text(update, context):
     uid = update.message.from_user.id
@@ -431,11 +456,14 @@ async def handle_admin_text(update, context):
             memo = f"NAP {uid}"
             photo_url = f"https://img.vietqr.io/image/{BANK_ID}-{ACCOUNT_NO}-compact2.png?amount={amt}&addInfo={quote(memo)}&accountName={quote(ACCOUNT_NAME)}"
             text_qr = f"💳 **MÃ QR NẠP {amt:,}Đ**\n📝 Nội dung: <code>{memo}</code>\n👉 <i>Đã đính kèm ID và số tiền tự động!</i>"
-            kb = InlineKeyboardMarkup([[InlineKeyboardButton("🔄 Kiểm Tra Số Dư", callback_data='menu_account')]])
+            kb = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔗 Mở Ảnh QR Trực Tiếp", url=photo_url)],
+                [InlineKeyboardButton("🔄 Kiểm Tra Số Dư", callback_data='menu_account')]
+            ])
             try:
                 await update.message.reply_photo(photo=photo_url, caption=text_qr, reply_markup=kb, parse_mode="HTML")
             except:
-                await update.message.reply_text(text_qr + f"\n\n🔗 [Bấm vào đây để mở ảnh QR]({photo_url})", reply_markup=kb, parse_mode="HTML", disable_web_page_preview=False)
+                await update.message.reply_text(text_qr + f"\n\n🔗 <a href='{photo_url}'>[Bấm vào đây để xem ảnh QR nạp tiền]</a>", reply_markup=kb, parse_mode="HTML")
         except: await update.message.reply_text("❌ Số tiền không hợp lệ!")
         return
 
@@ -475,6 +503,21 @@ async def handle_admin_text(update, context):
                     added += 1
             save_data()
             await update.message.reply_text(f"✅ Đã thêm {added} key vào kho {k_type.upper()}! Tổng: {len(target)}")
+            
+            # Tính năng thông báo Admin khi thêm key vào kho
+            try:
+                time_str = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
+                log_add_key = (
+                    f"📦 **THÊM KEY VÀO KHO THÀNH CÔNG**\n"
+                    f"• Phân khúc: <b>Gói {k_type.upper()}</b>\n"
+                    f"• Số lượng thêm: <b>+{added} key</b>\n"
+                    f"• Tồn kho hiện tại: <b>{len(target)} key</b>\n"
+                    f"• Admin thực hiện ID: <code>{uid}</code>\n"
+                    f"• Thời gian: {time_str}"
+                    f"{SIGNATURE}"
+                )
+                await context.bot.send_message(chat_id=LOG_GROUP_ID, text=log_add_key, parse_mode="HTML")
+            except: pass
         return
 
     if not is_admin(uid): return
@@ -539,7 +582,7 @@ def main():
     threading.Thread(target=run_flask, daemon=True).start()
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(CallbackQueryGraphHandler(button_handler) if 'CallbackQueryGraphHandler' in globals() else CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_admin_text))
     app.run_polling(drop_pending_updates=True)
 
