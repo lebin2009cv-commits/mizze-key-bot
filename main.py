@@ -1,4 +1,4 @@
-import os, logging, threading, httpx, re, time, datetime, json, asyncio
+import os, logging, threading, httpx, re, time, datetime, json, asyncio, gc
 from urllib.parse import quote
 from flask import Flask, request, jsonify
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
@@ -10,8 +10,6 @@ admin_list = {ADMIN_ID}
 
 LOG_GROUP_ID = -1003912025872
 CLIENT_GROUP_LINK = "https://t.me/mizze_lebin"
-SIGNATURE = "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚡ 🔮 **MIZZE STORE SYSTEM** 🔮 ⚡"
-BANNER_URL = "https://files.catbox.moe/f01erm.jpeg"
 CHANNEL_URL = "https://t.me/mizze_store"
 ADMIN_CONTACT = "https://t.me/lebindz"
 SUPPORT_CONTACT = "https://t.me/lebindz"
@@ -31,7 +29,7 @@ cooldown_cache = {}
 admin_view_mode = {}
 
 def make_copy_btn(label: str, text_to_copy: str):
-    """Hỗ trợ nút copy 1 chạm chuẩn không bao giờ lỗi ImportError"""
+    """Hỗ trợ nút copy 1 chạm chuẩn không lỗi"""
     btn = InlineKeyboardButton(label, callback_data="none")
     btn._api_kwargs = {"copy_text": {"text": str(text_to_copy)}}
     return btn
@@ -68,6 +66,9 @@ def save_data():
 
         with open(DB_FILE, "w", encoding="utf-8") as f:
             json.dump(db, f, ensure_ascii=False, indent=4)
+        
+        # GIẢI PHÓNG BỘ NHỚ THÔNG MINH (Garbage Collection)
+        gc.collect()
     except Exception: pass
 
 def get_u(uid):
@@ -86,9 +87,13 @@ def is_seller(uid):
     return str(uid) in db["sellers"]
 
 def check_spam(uid):
+    """HỆ THỐNG CHỐNG SPAM CLICK & GIẢI PHÓNG CACHE TỰ ĐỘNG"""
     now = time.time()
-    if uid in cooldown_cache and now - cooldown_cache[uid] < 0.6: return True
-    if len(cooldown_cache) > 1000: cooldown_cache.clear()
+    if uid in cooldown_cache and now - cooldown_cache[uid] < 0.6: 
+        return True
+    if len(cooldown_cache) > 500: 
+        # Tự động dọn dẹp cache cũ khi vượt quá 500 user để tiết kiệm RAM
+        cooldown_cache.clear()
     cooldown_cache[uid] = now
     return False
 
@@ -103,26 +108,30 @@ def build_main_menu_content(uid):
     u = get_u(uid)
     role_str = "👑 Admin" if is_admin(uid) else ("💎 Seller" if is_seller(uid) else "🛡️ Member")
     mode_tag = f"\n⚡ <b>Kho xem:</b> <code>{admin_view_mode.get(uid, 'seller').upper()}</code>" if is_admin(uid) else ""
+    
+    # GIAO DIỆN CHUẨN MẪU MIZZECHEAT - STORE HACK VỚI ICON ĐỘNG
     text = (
-        f"✨ <b>CHÀO MỪNG BẠN ĐẾN VỚI BOT AUTO BÁN HACK VIP</b>\n\n"
+        f"✨ <b>CHÀO MỪNG BẠN ĐẾN VỚI BOT BÁN HÀNG</b> 💫\n\n"
         f"<blockquote>"
-        f"🚨 <b>Kênh thông báo:</b> {CHANNEL_USERNAME}\n"
-        f"⚜️ <b>Admin:</b> {ADMIN_USERNAME}\n"
+        f"🔔 <b>Kênh thông báo:</b> {CHANNEL_USERNAME}\n"
+        f"☑️ <b>Admin:</b> {ADMIN_USERNAME}\n"
         f"➖ ➖ ➖ ➖ ➖ ➖ ➖ ➖\n"
-        f"💰 <b>Tổng nạp:</b> <code>{u['total_deposit']:,}đ</code>\n"
-        f"📅 <b>Tổng nạp tháng:</b> <code>{u['month_deposit']:,}đ</code>\n"
-        f"💎 <b>Số dư:</b> <code>{u['balance']:,}đ</code>"
+        f"⏱️ <b>Tổng nạp:</b> <code>{u['total_deposit']:,}đ</code>\n"
+        f"📊 <b>Tổng nạp tháng:</b> <code>{u['month_deposit']:,}đ</code>\n"
+        f"💳 <b>Số dư:</b> <code>{u['balance']:,}đ</code>"
         f"{mode_tag}"
         f"</blockquote>"
     )
+    
+    # BỐ CỤC MENU CÂN XỨNG, ĐẸP MẮT THEO ẢNH MẪU
     kb = [
-        [InlineKeyboardButton("👤 Tài khoản", callback_data='menu_account'), InlineKeyboardButton("🛒 Cửa hàng", callback_data='menu_shop')],
-        [InlineKeyboardButton("💸 Nạp tiền", callback_data='menu_deposit'), InlineKeyboardButton("📊 Lịch sử", callback_data='menu_history_hub')],
-        [InlineKeyboardButton("🔑 Mua Chứng Chỉ iOS", callback_data='my_keys'), InlineKeyboardButton("🚀 Tải File Hack", url=CLIENT_GROUP_LINK)],
-        [InlineKeyboardButton("💬 Hỗ trợ / Liên hệ", url=SUPPORT_CONTACT)]
+        [InlineKeyboardButton("👤 TÀI KHOẢN", callback_data='menu_account'), InlineKeyboardButton("🛒 CỬA HÀNG", callback_data='menu_shop')],
+        [InlineKeyboardButton("💰 NẠP TIỀN", callback_data='menu_deposit'), InlineKeyboardButton("📊 LỊCH SỬ", callback_data='menu_history_hub')],
+        [InlineKeyboardButton("🔑 GET KEY", callback_data='my_keys'), InlineKeyboardButton("📥 TẢI FILE", url=CLIENT_GROUP_LINK)],
+        [InlineKeyboardButton("💬 HỖ TRỢ / LIÊN HỆ", url=SUPPORT_CONTACT)]
     ]
     if is_seller(uid) and not is_admin(uid):
-        kb.insert(3, [InlineKeyboardButton("📈 Doanh Thu Seller", callback_data='seller_stats')])
+        kb.insert(3, [InlineKeyboardButton("📈 DOANH THU SELLER", callback_data='seller_stats')])
     if is_admin(uid):
         kb.append([InlineKeyboardButton("⚙️ QUẢN TRỊ ADMIN", callback_data='admin_panel')])
     return text, InlineKeyboardMarkup(kb)
@@ -131,7 +140,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, is_
     uid = update.effective_user.id
     save_data()
     if not db["bot_active"] and not is_admin(uid):
-        msg = "🚧 <b>HỆ THỐNG ĐANG BẢO TRÌ</b>\n<blockquote>Vui lòng quay lại sau!</blockquote>"
+        msg = "🚧 <b>HỆ THỐNG ĐANG BẢO TRÌ</b>\n<blockquote>Vui lòng quay lại sau ít phút!</blockquote>"
         if update.message: await update.message.reply_text(msg, parse_mode="HTML")
         elif update.callback_query: await edit_or_send(update.callback_query, msg)
         return
@@ -160,10 +169,10 @@ async def cmd_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton(f"👑 7D: {p['7d']:,}đ [{len(db['s_7d'])}]", callback_data='shop_7d'), InlineKeyboardButton(f"🚀 30D: {p['30d']:,}đ [{len(db['s_30d'])}]", callback_data='shop_30d')],
         [InlineKeyboardButton("💸 Nạp Tiền", callback_data='menu_deposit'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
     ])
-    await update.message.reply_text(f"🛒 <b>CỬA HÀNG MUA KEY</b>\n<blockquote>💎 Số dư: <code>{u['balance']:,}đ</code></blockquote>", reply_markup=kb, parse_mode="HTML")
+    await update.message.reply_text(f"🛒 <b>CỬA HÀNG HACK VIP</b>\n<blockquote>💎 Số dư: <code>{u['balance']:,}đ</code></blockquote>", reply_markup=kb, parse_mode="HTML")
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("📖 <b>HƯỚNG DẪN:</b>\n<blockquote>1. Chọn Nạp tiền (Mã QR đã gắn sẵn ID của bạn).\n2. Vào Cửa hàng chọn gói cần mua.\n3. Nhấn nút Copy để lấy key ngay lập tức.</blockquote>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]]), parse_mode="HTML")
+    await update.message.reply_text("📖 <b>HƯỚNG DẪN:</b>\n<blockquote>1. Chọn Nạp tiền (Mã QR tích hợp sẵn ID của bạn).\n2. Vào Cửa hàng mua key.\n3. Nhấn nút Copy để lấy key ngay lập tức.</blockquote>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]]), parse_mode="HTML")
 
 async def cmd_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -208,7 +217,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     uid = query.from_user.id
     if check_spam(uid):
-        await query.answer("⚠️ Thao tác quá nhanh!", show_alert=True)
+        await query.answer("⚠️ Thao tác quá nhanh, vui lòng từ từ!", show_alert=True)
         return
     await query.answer()
     u, data, is_s = get_u(uid), query.data, is_seller(uid)
@@ -514,7 +523,7 @@ def sepay():
                     u['deposit_history'].append(f"• <b>[{t_str}]</b> Nạp Auto <code>+{amt:,}đ</code> (Số dư: <code>{b_after:,}đ</code>)")
                     save_data()
                 try:
-                    httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": tid, "text": f"🎉 <b>NẠP THÀNH CÔNG +{amt:,}đ!</b>\nSố dư mới: <code>{b_after:,}đ</code>", "parse_mode": "HTML"})
+                    httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": tid, "text": f"🎉 <b>NẠP THÀNH CÔNG +{amt:,}đ!</b>\nSố dư mới: <code>{b_after:,}đ}</code>", "parse_mode": "HTML"})
                     httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": LOG_GROUP_ID, "text": f"💳 <b>NẠP TIỀN THÀNH CÔNG:</b> ID <code>{tid}</code> vừa nạp <code>+{amt:,}đ</code>\n💎 Số dư hiện tại: <code>{b_after:,}đ</code>", "parse_mode": "HTML"})
                 except Exception: pass
     return jsonify({"success": True}), 200
