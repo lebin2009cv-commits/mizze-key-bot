@@ -28,12 +28,6 @@ admin_state = {}
 cooldown_cache = {}
 admin_view_mode = {}
 
-def make_copy_btn(label: str, text_to_copy: str):
-    """Tạo nút copy an toàn tương thích mọi thiết bị"""
-    btn = InlineKeyboardButton(label, callback_data="none")
-    btn._api_kwargs = {"copy_text": {"text": str(text_to_copy)}}
-    return btn
-
 def load_data():
     default_data = {
         "users": {}, "user_data": {}, "sellers": {},
@@ -101,7 +95,7 @@ def build_main_menu_content(uid):
     u = get_u(uid)
     mode_tag = f"\n⚡ <b>Kho xem:</b> <code>{admin_view_mode.get(uid, 'seller').upper()}</code>" if is_admin(uid) else ""
     text = (
-        f"✨ <b>CHÀO MỪNG BẠN ĐẾN VỚI BOT BÁN HÀNG</b> 💫\n\n"
+        f"✨ <b>CHÀO MỪNG BẠN ĐẾN VỚI HỆ THỐNG STORE HACK</b> 💫\n\n"
         f"<blockquote>"
         f"🔔 <b>Kênh thông báo:</b> <a href='{CHANNEL_URL}'>Mizze Store</a>\n"
         f"☑️ <b>Admin:</b> <a href='{ADMIN_CONTACT}'>Le Bin</a>\n"
@@ -135,7 +129,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, is_
 
     text, kb = build_main_menu_content(uid)
     if is_start and update.message:
-        l_msg = await update.message.reply_text("✨ <i>Đang tải giao diện...</i>", parse_mode="HTML")
+        l_msg = await update.message.reply_text("✨ <i>Đang tải giao diện động...</i>", parse_mode="HTML")
         await asyncio.sleep(0.2)
         try: await l_msg.delete()
         except Exception: pass
@@ -160,11 +154,11 @@ async def cmd_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"🛒 <b>CỬA HÀNG HACK VIP</b>\n<blockquote>💎 Số dư: <code>{u['balance']:,}đ</code></blockquote>", reply_markup=kb, parse_mode="HTML")
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("📖 <b>HƯỚNG DẪN:</b>\n<blockquote>1. Chọn Nạp tiền (Mã QR tích hợp ID của bạn).\n2. Vào Cửa hàng mua key.\n3. Nhấn nút Copy để lấy key.</blockquote>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]]), parse_mode="HTML")
+    await update.message.reply_text("📖 <b>HƯỚNG DẪN:</b>\n<blockquote>1. Chọn Nạp tiền (Mã QR tích hợp ID).\n2. Vào Cửa hàng mua key.\n3. Sao chép và trải nghiệm.</blockquote>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]]), parse_mode="HTML")
 
 async def cmd_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
-    await update.message.reply_text(f"🆔 <b>ID của bạn:</b> <code>{uid}</code>", reply_markup=InlineKeyboardMarkup([[make_copy_btn("📋 Copy ID", str(uid))]]), parse_mode="HTML")
+    await update.message.reply_text(f"🆔 <b>ID của bạn:</b> <code>{uid}</code>", parse_mode="HTML")
 
 async def cmd_me(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -194,7 +188,7 @@ async def show_admin_panel(target_msg, uid, is_edit=True):
         [InlineKeyboardButton(f"🔄 Đổi kho xem ({cur.upper()})", callback_data='ad_switch_view')],
         [InlineKeyboardButton("📢 Gửi Thông Báo", callback_data='ad_broadcast'), InlineKeyboardButton("🔴 Bật/Tắt Bảo Trì", callback_data='toggle_bot_status')],
         [InlineKeyboardButton("📦 Thêm Key", callback_data='ad_checkkey'), InlineKeyboardButton("💰 Sửa Giá", callback_data='ad_price_menu')],
-        [InlineKeyboardButton("💸 Cộng/Trừ Tiền", callback_data='ad_bal'), InlineKeyboardButton("👥 Doanh Thu Seller", callback_data='ad_manageseller')],
+        [InlineKeyboardButton("💸 Cộng/Trừ Tiền", callback_data='ad_bal'), InlineKeyboardButton("👥 Quản Lý Seller", callback_data='ad_manageseller')],
         [InlineKeyboardButton("💾 Tải File Backup", callback_data='ad_get_backup'), InlineKeyboardButton("📥 Khôi Phục", callback_data='ad_restore_prompt')],
         [InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
     ])
@@ -217,19 +211,31 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == 'back_menu': await show_main_menu(update, context)
     elif data == 'menu_account':
         text = f"👤 <b>TÀI KHOẢN</b>\n<blockquote>ID: <code>{uid}</code>\nSố dư: <code>{u['balance']:,}đ</code>\nTổng nạp: <code>{u['total_deposit']:,}đ</code></blockquote>"
-        await edit_or_send(query, text, InlineKeyboardMarkup([[make_copy_btn("📋 Copy ID", str(uid))], [InlineKeyboardButton("🔑 Kho Key Đã Mua", callback_data='my_keys'), InlineKeyboardButton("📊 Lịch Sử", callback_data='menu_history_hub')], [InlineKeyboardButton("◀️ Quay Lại", callback_data='back_menu')]]))
+        kb_acc = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔑 Kho Key Đã Mua", callback_data='my_keys'), InlineKeyboardButton("📊 Lịch Sử", callback_data='menu_history_hub')],
+            [InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
+        ])
+        await edit_or_send(query, text, kb_acc)
     
     elif data == 'my_keys':
         kb_keys = []
         if u['my_keys']:
             for idx, item in enumerate(reversed(u['my_keys'][-12:]), 1):
-                clean_k = item.split('] ')[-1] if '] ' in item else item
-                label = item.split('] ')[0] + ']' if '] ' in item else '[KEY]'
-                kb_keys.append([make_copy_btn(f"📋 Copy {label} {clean_k[:14]}...", clean_k)])
-            keys_block = "<i>Nhấn nút Copy bên dưới để lấy key:</i>"
+                kb_keys.append([InlineKeyboardButton(f"🔑 Xem [{idx}] {item[:25]}...", callback_data=f"showkey_{id(item)}_{idx}")])
+            keys_block = "<i>Chọn key bên dưới để lấy toàn bộ mã code:</i>"
         else: keys_block = "<i>Bạn chưa mua key nào.</i>"
-        kb_keys.append([InlineKeyboardButton("◀️ Quay Lại", callback_data='back_menu')])
-        await edit_or_send(query, f"🔑 <b>KHO KEY ĐÃ MUA</b>\n<blockquote>{keys_block}</blockquote>", InlineKeyboardMarkup(kb_keys))
+        kb_keys.append([InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')])
+        await edit_or_send(query, f"🔑 <b>KHO KEY ĐÃ MUA CỦA BẠN</b>\n<blockquote>{keys_block}</blockquote>", InlineKeyboardMarkup(kb_keys))
+
+    elif data.startswith('showkey_'):
+        # Hiển thị trực tiếp key trong alert/message để user copy cực kỳ ổn định trên mọi máy
+        idx = int(data.split('_')[-1]) - 1
+        rev_keys = list(reversed(u['my_keys'][-12:]))
+        if 0 <= idx < len(rev_keys):
+            real_key = rev_keys[idx]
+            await query.answer(f"Key của bạn: {real_key}", show_alert=True)
+        else:
+            await query.answer("❌ Key không tồn tại!", show_alert=True)
 
     elif data == 'menu_history_hub':
         await edit_or_send(query, f"📊 <b>LỊCH SỬ GIAO DỊCH</b>\n<blockquote>Số dư: <code>{u['balance']:,}đ</code></blockquote>", InlineKeyboardMarkup([[InlineKeyboardButton("🛍️ Lịch Sử Mua", callback_data='hist_buy')], [InlineKeyboardButton("💳 Lịch Sử Nạp", callback_data='hist_deposit')], [InlineKeyboardButton("◀️ Quay Lại", callback_data='back_menu')]]))
@@ -316,11 +322,30 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await edit_or_send(query, "💬 Nhập: <code>[ID] [Số_tiền]</code>")
     elif data == 'ad_manageseller' and is_admin(uid):
         s_text = "👥 <b>QUẢN LÝ SELLER</b>\n<blockquote>"
+        kb_seller = [[InlineKeyboardButton("➕ Thêm Seller", callback_data='add_seller_prompt')]]
         for s_id, s_info in db["sellers"].items():
-            s_text += f"• ID: <code>{s_id}</code> — <b>{s_info.get('daily_rev',0):,}đ</b> / {s_info.get('target',500000):,}đ\n"
+            s_text += f"• ID: <code>{s_id}</code> — <b>{s_info.get('daily_rev',0):,}đ</b>\n"
+            kb_seller.append([InlineKeyboardButton(f"❌ Xóa Seller {s_id}", callback_data=f"delsel_{s_id}")])
         if not db["sellers"]: s_text += "<i>Trống.</i>"
         s_text += "</blockquote>"
-        await edit_or_send(query, s_text, InlineKeyboardMarkup([[InlineKeyboardButton("➕ Thêm Seller", callback_data='add_seller_prompt')], [InlineKeyboardButton("◀️ Quay Lại", callback_data='admin_panel')]]))
+        kb_seller.append([InlineKeyboardButton("◀️ Quay Lại", callback_data='admin_panel')])
+        await edit_or_send(query, s_text, InlineKeyboardMarkup(kb_seller))
+    elif data.startswith('delsel_') and is_admin(uid):
+        s_id = data.replace('delsel_', '')
+        if s_id in db["sellers"]:
+            db["sellers"].pop(s_id)
+            save_data()
+            await query.answer(f"✅ Đã xóa Seller {s_id}!", show_alert=True)
+        # Load lại bảng quản lý seller
+        s_text = "👥 <b>QUẢN LÝ SELLER</b>\n<blockquote>"
+        kb_seller = [[InlineKeyboardButton("➕ Thêm Seller", callback_data='add_seller_prompt')]]
+        for s_id, s_info in db["sellers"].items():
+            s_text += f"• ID: <code>{s_id}</code> — <b>{s_info.get('daily_rev',0):,}đ</b>\n"
+            kb_seller.append([InlineKeyboardButton(f"❌ Xóa Seller {s_id}", callback_data=f"delsel_{s_id}")])
+        if not db["sellers"]: s_text += "<i>Trống.</i>"
+        s_text += "</blockquote>"
+        kb_seller.append([InlineKeyboardButton("◀️ Quay Lại", callback_data='admin_panel')])
+        await edit_or_send(query, s_text, InlineKeyboardMarkup(kb_seller))
     elif data == 'add_seller_prompt' and is_admin(uid):
         admin_state[uid] = 'add_seller_id'
         await edit_or_send(query, "💬 Nhập: <code>[ID] [Chỉ_tiêu]</code>")
@@ -375,10 +400,8 @@ async def process_purchase(query, context, uid, kt, qty):
     except Exception: pass
 
     kb_buy = []
-    for k in keys_bought:
-        kb_buy.append([make_copy_btn(f"📋 Copy Key: {k[:14]}...", k)])
-    if len(keys_bought) > 1:
-        kb_buy.append([make_copy_btn("📑 Copy Tất Cả Key", "\n".join(keys_bought))])
+    for idx, k in enumerate(keys_bought, 1):
+        kb_buy.append([InlineKeyboardButton(f"📋 Copy Key [{idx}]: {k[:16]}...", callback_data=f"alertkey_{id(k)}")])
     kb_buy.append([InlineKeyboardButton("🔑 Kho Key", callback_data='my_keys'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')])
 
     keys_display = "\n".join([f"<code>{k}</code>" for k in keys_bought])
