@@ -154,7 +154,7 @@ async def cmd_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"🛒 <b>CỬA HÀNG HACK VIP</b>\n<blockquote>💎 Số dư: <code>{u['balance']:,}đ</code></blockquote>", reply_markup=kb, parse_mode="HTML")
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("📖 <b>HƯỚNG DẪN:</b>\n<blockquote>1. Chọn Nạp tiền (Mã QR tích hợp ID).\n2. Vào Cửa hàng mua key.\n3. Sao chép và trải nghiệm.</blockquote>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]]), parse_mode="HTML")
+    await update.message.reply_text("📖 <b>HƯỚNG DẪN:</b>\n<blockquote>1. Chọn Nạp tiền (Mã QR tích hợp ID).\n2. Vào Cửa hàng mua key.\n3. Nhấn vào Kho Key để lấy mã và copy sử dụng.</blockquote>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]]), parse_mode="HTML")
 
 async def cmd_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -221,19 +221,22 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         kb_keys = []
         if u['my_keys']:
             for idx, item in enumerate(reversed(u['my_keys'][-12:]), 1):
-                kb_keys.append([InlineKeyboardButton(f"🔑 Xem [{idx}] {item[:25]}...", callback_data=f"showkey_{id(item)}_{idx}")])
-            keys_block = "<i>Chọn key bên dưới để lấy toàn bộ mã code:</i>"
+                kb_keys.append([InlineKeyboardButton(f"🔑 Lấy Key [{idx}] {item[:22]}...", callback_data=f"getkey_{idx}")])
+            keys_block = "<i>Bấm vào nút tương ứng bên dưới, Bot sẽ gửi khung mã code chứa Key để bạn copy:</i>"
         else: keys_block = "<i>Bạn chưa mua key nào.</i>"
         kb_keys.append([InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')])
         await edit_or_send(query, f"🔑 <b>KHO KEY ĐÃ MUA CỦA BẠN</b>\n<blockquote>{keys_block}</blockquote>", InlineKeyboardMarkup(kb_keys))
 
-    elif data.startswith('showkey_'):
-        # Hiển thị trực tiếp key trong alert/message để user copy cực kỳ ổn định trên mọi máy
-        idx = int(data.split('_')[-1]) - 1
+    elif data.startswith('getkey_'):
+        idx = int(data.split('_')[1]) - 1
         rev_keys = list(reversed(u['my_keys'][-12:]))
         if 0 <= idx < len(rev_keys):
-            real_key = rev_keys[idx]
-            await query.answer(f"Key của bạn: {real_key}", show_alert=True)
+            k_val = rev_keys[idx]
+            await context.bot.send_message(
+                chat_id=uid,
+                text=f"🔑 <b>MÃ KEY CỦA BẠN:</b>\n<blockquote><code>{k_val}</code></blockquote>\n<i>(Chạm vào đoạn mã trên để copy tự động)</i>",
+                parse_mode="HTML"
+            )
         else:
             await query.answer("❌ Key không tồn tại!", show_alert=True)
 
@@ -336,7 +339,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             db["sellers"].pop(s_id)
             save_data()
             await query.answer(f"✅ Đã xóa Seller {s_id}!", show_alert=True)
-        # Load lại bảng quản lý seller
         s_text = "👥 <b>QUẢN LÝ SELLER</b>\n<blockquote>"
         kb_seller = [[InlineKeyboardButton("➕ Thêm Seller", callback_data='add_seller_prompt')]]
         for s_id, s_info in db["sellers"].items():
@@ -399,10 +401,9 @@ async def process_purchase(query, context, uid, kt, qty):
         await context.bot.send_message(chat_id=LOG_GROUP_ID, text=f"🛍️ <b>MUA HÀNG:</b> ID <code>{uid}</code> mua {qty}x {kt.upper()} (-{total:,}đ)\n💰 Số dư còn: <code>{b_after:,}đ</code>", parse_mode="HTML")
     except Exception: pass
 
-    kb_buy = []
-    for idx, k in enumerate(keys_bought, 1):
-        kb_buy.append([InlineKeyboardButton(f"📋 Copy Key [{idx}]: {k[:16]}...", callback_data=f"alertkey_{id(k)}")])
-    kb_buy.append([InlineKeyboardButton("🔑 Kho Key", callback_data='my_keys'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')])
+    kb_buy = [
+        [InlineKeyboardButton("🔑 Kho Key Đã Mua", callback_data='my_keys'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
+    ]
 
     keys_display = "\n".join([f"<code>{k}</code>" for k in keys_bought])
     res_text = f"✅ <b>MUA THÀNH CÔNG {qty}x {kt.upper()}!</b>\n<blockquote><b>Key của bạn:</b>\n{keys_display}\n\nĐã trừ: <code>-{total:,}đ</code>\nSố dư: <code>{b_after:,}đ</code></blockquote>"
