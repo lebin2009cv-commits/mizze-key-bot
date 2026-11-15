@@ -138,6 +138,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_data()
     await show_main_menu(update, context, is_start=True)
 
+async def cmd_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    u, is_s = get_u(update.effective_user.id), is_seller(update.effective_user.id)
+    p = db["seller_prices"] if is_s else db["prices"]
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton(f"⚡ 1H: {p['1h']:,}đ [{len(db['s_1h'])}]", callback_data='shop_1h'), InlineKeyboardButton(f"⏱️ 3D: {p['3d']:,}đ [{len(db['s_3d'])}]", callback_data='shop_3d')],
+        [InlineKeyboardButton(f"💎 1D: {p['1d']:,}đ [{len(db['s_1d'])}]", callback_data='shop_1d'), InlineKeyboardButton(f"👑 7D: {p['7d']:,}đ [{len(db['s_7d'])}]", callback_data='shop_7d')],
+        [InlineKeyboardButton(f"🚀 30D: {p['30d']:,}đ [{len(db['s_30d'])}]", callback_data='shop_30d'), InlineKeyboardButton(f"🌟 1Y: {p['1y']:,}đ [{len(db['s_1y'])}]", callback_data='shop_1y')],
+        [InlineKeyboardButton("💸 Nạp Tiền", callback_data='menu_deposit'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
+    ])
+    await update.message.reply_text(f"🛒 <b>CỬA HÀNG HACK VIP</b>\n<blockquote>💎 Số dư: <code>{u['balance']:,}đ</code></blockquote>", reply_markup=kb, parse_mode="HTML")
+
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     uid = query.from_user.id
@@ -192,7 +203,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(f"🚀 30D: {p['30d']:,}đ [{len(db['s_30d'])}]", callback_data='shop_30d'), InlineKeyboardButton(f"🌟 1Y: {p['1y']:,}đ [{len(db['s_1y'])}]", callback_data='shop_1y')],
             [InlineKeyboardButton("💸 Nạp Tiền", callback_data='menu_deposit'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
         ])
-        await edit_or_send(query, f"🛒 <b>CỬA HÀNG HACK VIP</b>\n<blockquote>💎 Số dư: <code>{u['balance']:,}đ</code></blockquote>", kb)
+        await edit_or_send(query, f"🛒 <b>CỬA HÀNG HACK VIP</b>\n<blockquote>Số dư: <code>{u['balance']:,}đ</code></blockquote>", kb)
     elif data.startswith('shop_'):
         kt = data.split('_')[1]
         price, kho = {'1h': (p['1h'], db['s_1h']), '3d': (p['3d'], db['s_3d']), '1d': (p['1d'], db['s_1d']), '7d': (p['7d'], db['s_7d']), '30d': (p['30d'], db['s_30d']), '1y': (p['1y'], db['s_1y'])}[kt]
