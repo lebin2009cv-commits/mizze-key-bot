@@ -80,19 +80,19 @@ def check_spam(uid):
     cooldown_cache[uid] = now
     return False
 
-async def safe_send_or_edit(update_or_query, text, reply_markup=None):
-    if hasattr(update_or_query, 'message') and update_or_query.message:
+async def safe_send_or_edit(query, text, reply_markup=None):
+    if hasattr(query, 'message') and query.message:
         try:
-            await update_or_query.message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
+            await query.message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
             return
         except Exception:
             try:
-                await update_or_query.message.reply_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
+                await query.message.reply_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
                 return
             except Exception: pass
-    elif hasattr(update_or_query, 'reply_text'):
+    elif hasattr(query, 'reply_text'):
         try:
-            await update_or_query.reply_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
+            await query.reply_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
         except Exception: pass
 
 def get_main_menu_markup(uid):
@@ -145,10 +145,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_data()
     await show_main_menu(update, context, is_start=True)
 
-async def render_shop(update_or_query):
-    uid = update_or_query.from_user.id if hasattr(update_or_query, 'from_user') else update_or_query.effective_user.id
+# HÀM RENDER CỬA HÀNG HOÀN TOÀN MỚI, KHÔNG LỖI
+async def render_shop(query_or_update):
+    uid = query_or_update.from_user.id if hasattr(query_or_update, 'from_user') else query_or_update.effective_user.id
     u, is_s = get_u(uid), is_seller(uid)
     p = db["seller_prices"] if is_s else db["prices"]
+    
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton(f"⚡ 1H: {p['1h']:,}đ [{len(db['s_1h'])}]", callback_data='shop_1h'), InlineKeyboardButton(f"💎 1D: {p['1d']:,}đ [{len(db['s_1d'])}]", callback_data='shop_1d')],
         [InlineKeyboardButton(f"⏱️ 3D: {p['3d']:,}đ [{len(db['s_3d'])}]", callback_data='shop_3d'), InlineKeyboardButton(f"👑 7D: {p['7d']:,}đ [{len(db['s_7d'])}]", callback_data='shop_7d')],
@@ -156,7 +158,7 @@ async def render_shop(update_or_query):
         [InlineKeyboardButton("💳 Nạp Tiền", callback_data='menu_deposit'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
     ])
     text = f"🛒 <b>CỬA HÀNG HACK VIP</b>\n<blockquote>💎 Số dư ví: <code>{u['balance']:,}đ</code>\nChọn gói thời gian cần mua bên dưới:</blockquote>"
-    await safe_send_or_edit(update_or_query, text, kb)
+    await safe_send_or_edit(query_or_update, text, kb)
 
 async def render_deposit(query):
     uid = query.from_user.id
@@ -172,8 +174,8 @@ async def render_deposit(query):
     text = f"💳 <b>NẠP TIỀN TỰ ĐỘNG QUA QR</b>\n<blockquote>Số dư hiện tại: <code>{u['balance']:,}đ</code>\nChọn nhanh mệnh giá nạp bên dưới:</blockquote>"
     await safe_send_or_edit(query, text, kb_dep)
 
-async def render_admin_panel(update_or_query):
-    uid = update_or_query.from_user.id if hasattr(update_or_query, 'from_user') else update_or_query.effective_user.id
+async def render_admin_panel(query_or_update):
+    uid = query_or_update.from_user.id if hasattr(query_or_update, 'from_user') else query_or_update.effective_user.id
     if not is_admin(uid): return
     mode = admin_view_mode.get(uid, 'seller').upper()
     text = (
@@ -193,7 +195,7 @@ async def render_admin_panel(update_or_query):
         [InlineKeyboardButton(f"🔄 Bật/Tắt Bot: {'Đang Bật' if db['bot_active'] else 'Đang Tắt'}", callback_data='toggle_bot_status')],
         [InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
     ]
-    await safe_send_or_edit(update_or_query, text, InlineKeyboardMarkup(kb))
+    await safe_send_or_edit(query_or_update, text, InlineKeyboardMarkup(kb))
 
 async def cmd_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await render_shop(update)
@@ -256,7 +258,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await safe_send_or_edit(query, f"📈 <b>DOANH THU SELLER</b>\n<blockquote>• Doanh thu: <code>{s_info['daily_rev']:,}đ</code>\n• Chỉ tiêu: <code>{s_info['target']:,}đ</code></blockquote>", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại", callback_data='back_menu')]]))
     elif data.startswith('shop_'):
         kt = data.split('_')[1]
-        price, kho = {'1h': (p['1h'], db['s_1h']), '1d': (p['1d'], db['s_1d']), '3d': (p['3d'], db['s_3d']), '7d': (p['7d'], db['s_7d']), '30d': (p['30d'], db['s_30d']), '90d': (p['90d'], db['s_90d'])}[kt]
+        price_map = p
+        kho_map = {'1h': db['s_1h'], '1d': db['s_1d'], '3d': db['s_3d'], '7d': db['s_7d'], '30d': db['s_30d'], '90d': db['s_90d']}
+        price = price_map.get(kt, 5000)
+        kho = kho_map.get(kt, [])
+        
         kb = InlineKeyboardMarkup([
             [InlineKeyboardButton("Mua 1 Key", callback_data=f"buyq_{kt}_1"), InlineKeyboardButton("Mua 5 Key", callback_data=f"buyq_{kt}_5")],
             [InlineKeyboardButton("✏️ Nhập Số Lượng", callback_data=f"buyq_custom_{kt}")],
@@ -340,9 +346,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await safe_send_or_edit(query, "💬 Nhập: <code>[ID] [Chỉ_tiêu]</code>")
     elif data == 'ad_checkkey' and is_admin(uid):
         await safe_send_or_edit(query, "📦 Chọn kho thêm key:", InlineKeyboardMarkup([
-            [InlineKeyboardButton("1H", callback_data='k_s1h'), InlineKeyboardButton("1D", callback_data='k_s1d')],
-            [InlineKeyboardButton("3D", callback_data='k_s3d'), InlineKeyboardButton("7D", callback_data='k_s7d')],
-            [InlineKeyboardButton("30D", callback_data='k_s30d'), InlineKeyboardButton("90D", callback_data='k_s90d')],
+            [InlineKeyboardButton("1H", callback_data='k_1h'), InlineKeyboardButton("1D", callback_data='k_1d')],
+            [InlineKeyboardButton("3D", callback_data='k_3d'), InlineKeyboardButton("7D", callback_data='k_7d')],
+            [InlineKeyboardButton("30D", callback_data='k_30d'), InlineKeyboardButton("90D", callback_data='k_90d')],
             [InlineKeyboardButton("◀️ Quay Lại", callback_data='admin_panel')]
         ]))
     elif data.startswith('k_') and is_admin(uid):
@@ -368,7 +374,12 @@ async def process_purchase(query, context, uid, kt, qty):
         if qty <= 0 or qty > 100:
             await query.answer("❌ Số lượng không hợp lệ!", show_alert=True)
             return
-        price, kho = {'1h': (p['1h'], db['s_1h']), '1d': (p['1d'], db['s_1d']), '3d': (p['3d'], db['s_3d']), '7d': (p['7d'], db['s_7d']), '30d': (p['30d'], db['s_30d']), '90d': (p['90d'], db['s_90d'])}[kt]
+            
+        price_map = p
+        kho_map = {'1h': db['s_1h'], '1d': db['s_1d'], '3d': db['s_3d'], '7d': db['s_7d'], '30d': db['s_30d'], '90d': db['s_90d']}
+        price = price_map.get(kt, 5000)
+        kho = kho_map.get(kt, [])
+        
         total = price * qty
         if len(kho) < qty:
             await query.answer(f"❌ Kho không đủ ({len(kho)} key)!", show_alert=True)
@@ -481,7 +492,8 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if state.startswith('addk_'):
         k_type = state.replace('addk_', '')
         admin_state.pop(uid, None)
-        target = {'s1h': db['s_1h'], 's1d': db['s_1d'], 's3d': db['s_3d'], 's7d': db['s_7d'], 's30d': db['s_30d'], 's90d': db['s_90d']}.get(k_type)
+        kho_map = {'1h': db['s_1h'], '1d': db['s_1d'], '3d': db['s_3d'], '7d': db['s_7d'], '30d': db['s_30d'], '90d': db['s_90d']}
+        target = kho_map.get(k_type)
         if target is not None:
             added = 0
             for line in text.split('\n'):
