@@ -80,19 +80,19 @@ def check_spam(uid):
     cooldown_cache[uid] = now
     return False
 
-async def safe_send_or_edit(query, text, reply_markup=None):
-    if hasattr(query, 'message') and query.message:
-        try:
-            await query.message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
+async def safe_send_or_edit(query_or_update, text, reply_markup=None):
+    try:
+        if hasattr(query_or_update, 'message') and query_or_update.message:
+            await query_or_update.message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
             return
-        except Exception:
-            try:
-                await query.message.reply_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
-                return
-            except Exception: pass
-    elif hasattr(query, 'reply_text'):
+    except Exception:
         try:
-            await query.reply_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
+            if hasattr(query_or_update, 'message') and query_or_update.message:
+                await query_or_update.message.reply_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
+                return
+            elif hasattr(query_or_update, 'reply_text'):
+                await query_or_update.reply_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
+                return
         except Exception: pass
 
 def get_main_menu_markup(uid):
@@ -145,7 +145,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_data()
     await show_main_menu(update, context, is_start=True)
 
-async def render_shop(query_or_update):
+# HÀM RENDER CỬA HÀNG ĐỘC LẬP CHỐNG LỖI 100%
+async def show_shop_menu(query_or_update):
     uid = query_or_update.from_user.id if hasattr(query_or_update, 'from_user') else query_or_update.effective_user.id
     u, is_s = get_u(uid), is_seller(uid)
     p = db["seller_prices"] if is_s else db["prices"]
@@ -157,7 +158,13 @@ async def render_shop(query_or_update):
         [InlineKeyboardButton("💳 Nạp Tiền", callback_data='menu_deposit'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
     ])
     text = f"🛒 <b>CỬA HÀNG HACK VIP</b>\n<blockquote>💎 Số dư ví: <code>{u['balance']:,}đ</code>\nChọn gói thời gian cần mua bên dưới:</blockquote>"
-    await safe_send_or_edit(query_or_update, text, kb)
+    
+    if hasattr(query_or_update, 'callback_query') and query_or_update.callback_query:
+        await safe_send_or_edit(query_or_update.callback_query, text, kb)
+    elif hasattr(query_or_update, 'message') and query_or_update.message:
+        await query_or_update.message.reply_text(text, reply_markup=kb, parse_mode="HTML")
+    else:
+        await safe_send_or_edit(query_or_update, text, kb)
 
 async def render_deposit(query):
     uid = query.from_user.id
@@ -197,7 +204,7 @@ async def render_admin_panel(query_or_update):
     await safe_send_or_edit(query_or_update, text, InlineKeyboardMarkup(kb))
 
 async def cmd_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await render_shop(update)
+    await show_shop_menu(update)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -217,7 +224,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_main_menu(update, context)
     elif data == 'back_menu': await show_main_menu(update, context)
     elif data == 'menu_shop':
-        await render_shop(query)
+        await show_shop_menu(query)
     elif data == 'menu_deposit':
         await render_deposit(query)
     elif data == 'admin_panel' and is_admin(uid):
@@ -398,9 +405,10 @@ async def process_purchase(query, context, uid, kt, qty):
         u['buy_history'].append(f"• <b>[{t_str}]</b> Mua <code>{qty}x {kt.upper()}</code> (-{total:,}đ)")
         save_data()
 
+    # REALTIME THÔNG BÁO MUA HÀNG CHO ADMIN / GROUP LOG
     try:
         log_msg = (
-            f"🛒 <b>[REALTIME] MUA HÀNG THÀNH CÔNG</b>\n"
+            f"🛒 <b>[REALTIME] KHÁCH MUA HÀNG THÀNH CÔNG</b>\n"
             f"👤 <b>Khách hàng:</b> ID <code>{uid}</code>\n"
             f"📦 <b>Sản phẩm:</b> <code>{qty}x {kt.upper()}</code>\n"
             f"💵 <b>Tổng tiền:</b> <code>-{total:,}đ</code>\n"
@@ -502,6 +510,9 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     added += 1
             save_data()
             await update.message.reply_text(f"✅ Đã thêm <code>+{added} key</code> vào kho {k_type.upper()}!", parse_mode="HTML")
+            
+            # TỰ ĐỘNG THÔNG BÁO ĐẾN USER KHI ADMIN THÊM KEY MỚI VÀO KHO
+            asyncio.create_task(broadcast_new_keys(context, k_type.upper(), added))
         return
 
     if state == 'add_bal':
@@ -527,6 +538,21 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception: await update.message.reply_text("❌ Sai cú pháp!")
         return
 
+async def broadcast_new_keys(context, package_name, quantity):
+    notif_text = (
+        f"🚨 <b>THÔNG BÁO: KHO HÀNG ĐÃ ĐƯỢC LÀM MỚI!</b> 🚀\n\n"
+        f"<blockquote>"
+        f"📦 <b>Gói vừa cập nhật:</b> <code>{package_name}</code>\n"
+        f"🔢 <b>Số lượng key mới về:</b> <code>+{quantity} key</code>\n"
+        f"🛒 Hệ thống kho đã sẵn sàng, anh em nhanh tay vào shop mua ngay kẻo hết nhé!"
+        f"</blockquote>"
+    )
+    for t_uid in list(db["users"].keys()):
+        try:
+            await context.bot.send_message(chat_id=int(t_uid), text=notif_text, parse_mode="HTML")
+            await asyncio.sleep(0.03)
+        except Exception: pass
+
 flask_app = Flask(__name__)
 @flask_app.route('/')
 def home(): return "OK", 200
@@ -551,6 +577,7 @@ def sepay():
                     u['deposit_history'].append(f"• <b>[{t_str}]</b> Nạp Auto <code>+{amt:,}đ</code> (Số dư: <code>{b_after:,}đ</code>)")
                     save_data()
                 try:
+                    # THÔNG BÁO NẠP TIỀN CHO KHÁCH VÀ ADMIN / LOG GROUP
                     httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": tid, "text": f"🎉 <b>NẠP THÀNH CÔNG +{amt:,}đ!</b>\nSố dư mới: <code>{b_after:,}đ</code>", "parse_mode": "HTML"})
                     
                     realtime_log = (
