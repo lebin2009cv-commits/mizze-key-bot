@@ -75,7 +75,7 @@ def is_seller(uid):
 
 def check_spam(uid):
     now = time.time()
-    if uid in cooldown_cache and now - cooldown_cache[uid] < 0.4: return True
+    if uid in cooldown_cache and now - cooldown_cache[uid] < 0.3: return True
     if len(cooldown_cache) > 500: cooldown_cache.clear()
     cooldown_cache[uid] = now
     return False
@@ -123,7 +123,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, is_
 
     text, kb = build_main_menu_content(uid)
     if is_start and update.message:
-        l_msg = await update.message.reply_text("✨ <i>Đang tải giao diện...</i>", parse_mode="HTML")
+        l_msg = await update.message.reply_text("✨ <i>Đang tải giao diện hiện đại...</i>", parse_mode="HTML")
         await asyncio.sleep(0.2)
         try: await l_msg.delete()
         except Exception: pass
@@ -312,7 +312,7 @@ async def send_qr_direct(query, context, uid, amount):
     memo = f"NAP {uid}"
     photo_url = f"https://img.vietqr.io/image/{BANK_ID}-{ACCOUNT_NO}-compact2.png?amount={amount}&addInfo={quote(memo)}&accountName={quote(ACCOUNT_NAME)}"
     text = f"💳 <b>QR NẠP {amount:,}Đ</b>\n<blockquote>STK: <code>{ACCOUNT_NO}</code>\nNội dung (Đã gắn ID): <code>{memo}</code></blockquote>"
-    kb = InlineKeyboardMarkup([[InlineKeyboardButton("🔗 Mở Ảnh QR", url=photo_url)], [InlineKeyboardButton("🔄 Kiểm Tra Số Dư", callback_data='menu_account'), InlineKeyboardButton("◀️ Quay Lại", callback_data='menu_deposit')]])
+    kb = InlineKeyboardMarkup([[InlineKeyboardButton("🔗 Mở Ảnh QR", url=photo_url)], [InlineKeyboardButton("🔄 Kiểm Tra Số Dư", callback_data='menu_account'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]])
     try:
         await query.message.delete()
         await context.bot.send_photo(chat_id=uid, photo=photo_url, caption=text, reply_markup=kb, parse_mode="HTML")
@@ -371,8 +371,30 @@ async def handle_document_restore(update: Update, context: ContextTypes.DEFAULT_
 
 async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid, text = update.message.from_user.id, update.message.text
-    if uid not in admin_state: return
+    if uid not in admin_state:
+        # Nếu user đang gửi text tự do không ở trạng thái nào thì bỏ qua để tránh lỗi
+        return
+    
     state = admin_state[uid]
+
+    if state == 'waiting_deposit':
+        admin_state.pop(uid, None)
+        cleaned_text = re.sub(r'[^\d]', '', text)
+        if not cleaned_text:
+            await update.message.reply_text("❌ Số tiền không hợp lệ! Vui lòng chỉ nhập số (ví dụ: 50000).")
+            return
+        amt = int(cleaned_text)
+        if amt <= 0:
+            await update.message.reply_text("❌ Số tiền phải lớn hơn 0!")
+            return
+        memo = f"NAP {uid}"
+        photo_url = f"https://img.vietqr.io/image/{BANK_ID}-{ACCOUNT_NO}-compact2.png?amount={amt}&addInfo={quote(memo)}&accountName={quote(ACCOUNT_NAME)}"
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔗 Mở Ảnh QR", url=photo_url)],
+            [InlineKeyboardButton("🔄 Kiểm Tra Số Dư", callback_data='menu_account'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
+        ])
+        await update.message.reply_photo(photo=photo_url, caption=f"💳 <b>QR NẠP {amt:,}Đ</b>\n<blockquote>STK: <code>{ACCOUNT_NO}</code>\nNội dung: <code>{memo}</code></blockquote>", reply_markup=kb, parse_mode="HTML")
+        return
 
     if state.startswith('buy_custom_'):
         admin_state.pop(uid, None)
@@ -380,25 +402,9 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             class DummyQuery:
                 def __init__(self, msg, user): self.message, self.from_user = msg, user
                 async def answer(self, *a, **kw): pass
-            await process_purchase(DummyQuery(update.message, update.message.from_user), context, uid, state.replace('buy_custom_', ''), int(text.strip()))
-        except Exception: await update.message.reply_text("❌ Lỗi số lượng!")
-        return
-
-    if state == 'waiting_deposit':
-        admin_state.pop(uid, None)
-        try:
-            amt = int(text.replace(".", "").replace(",", "").strip())
-            if amt <= 0:
-                await update.message.reply_text("❌ Số tiền phải lớn hơn 0!")
-                return
-            memo = f"NAP {uid}"
-            photo_url = f"https://img.vietqr.io/image/{BANK_ID}-{ACCOUNT_NO}-compact2.png?amount={amt}&addInfo={quote(memo)}&accountName={quote(ACCOUNT_NAME)}"
-            kb = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔗 Mở Ảnh QR", url=photo_url)],
-                [InlineKeyboardButton("🔄 Kiểm Tra Số Dư", callback_data='menu_account'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
-            ])
-            await update.message.reply_photo(photo=photo_url, caption=f"💳 <b>QR NẠP {amt:,}Đ</b>\n<blockquote>STK: <code>{ACCOUNT_NO}</code>\nNội dung: <code>{memo}</code></blockquote>", reply_markup=kb, parse_mode="HTML")
-        except Exception: await update.message.reply_text("❌ Số tiền không hợp lệ! Vui lòng chỉ nhập số.")
+            cleaned_qty = re.sub(r'[^\d]', '', text)
+            await process_purchase(DummyQuery(update.message, update.message.from_user), context, uid, state.replace('buy_custom_', ''), int(cleaned_qty))
+        except Exception: await update.message.reply_text("❌ Số lượng không hợp lệ!")
         return
 
     if not is_admin(uid): return
@@ -419,7 +425,7 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pk = state.replace('setprice_mem_' if is_m else 'setprice_sel_', '')
         admin_state.pop(uid, None)
         try:
-            db["prices" if is_m else "seller_prices"][pk] = int(text.replace(".", "").strip())
+            db["prices" if is_m else "seller_prices"][pk] = int(re.sub(r'[^\d]', '', text))
             save_data()
             await update.message.reply_text(f"✅ Đã cập nhật giá gói {pk.upper()}!", parse_mode="HTML")
         except Exception: await update.message.reply_text("❌ Giá lỗi!")
@@ -443,8 +449,8 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if state == 'add_bal':
         admin_state.pop(uid, None)
         try:
-            tid, amt = text.split()
-            tid, amt = int(tid), int(amt)
+            parts = text.split()
+            tid, amt = int(parts[0]), int(re.sub(r'[^\d\-]', '', parts[1]))
             u = get_u(tid)
             u['balance'] += amt
             if amt > 0: u['total_deposit'] += amt
@@ -457,7 +463,7 @@ async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         admin_state.pop(uid, None)
         try:
             parts = text.split()
-            db["sellers"][str(parts[0])] = {"daily_rev": 0, "target": int(parts[1]) if len(parts) > 1 else 500000}
+            db["sellers"][str(parts[0])] = {"daily_rev": 0, "target": int(re.sub(r'[^\d]', '', parts[1])) if len(parts) > 1 else 500000}
             save_data()
             await update.message.reply_text("✅ Thêm Seller thành công!", parse_mode="HTML")
         except Exception: await update.message.reply_text("❌ Sai cú pháp!")
