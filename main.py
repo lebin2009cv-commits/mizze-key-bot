@@ -75,15 +75,13 @@ def is_seller(uid):
 
 def check_spam(uid):
     now = time.time()
-    if uid in cooldown_cache and now - cooldown_cache[uid] < 0.25: return True
+    if uid in cooldown_cache and now - cooldown_cache[uid] < 0.2: return True
     if len(cooldown_cache) > 500: cooldown_cache.clear()
     cooldown_cache[uid] = now
     return False
 
 async def edit_or_send(query, text, reply_markup=None):
     try:
-        if query.message.text == text and query.message.reply_markup == reply_markup:
-            return
         await query.message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
     except Exception:
         try:
@@ -94,20 +92,20 @@ def build_main_menu_content(uid):
     u = get_u(uid)
     mode_tag = f"\n⚡ <b>Kho xem:</b> <code>{admin_view_mode.get(uid, 'seller').upper()}</code>" if is_admin(uid) else ""
     text = (
-        f"✨ <b>HỆ THỐNG STORE HACK VIP</b> 💫\n\n"
+        f"💎 <b>HỆ THỐNG STORE HACK VIP</b> 🚀\n\n"
         f"<blockquote>"
-        f"🔔 <b>Kênh thông báo:</b> <a href='{CHANNEL_URL}'>Mizze Store</a>\n"
-        f"☑️ <b>Admin:</b> <a href='{ADMIN_CONTACT}'>Le Bin</a>\n"
+        f"📢 <b>Kênh thông báo:</b> <a href='{CHANNEL_URL}'>Mizze Store</a>\n"
+        f"👤 <b>Quản trị viên:</b> <a href='{ADMIN_CONTACT}'>Le Bin</a>\n"
         f"➖ ➖ ➖ ➖ ➖ ➖ ➖ ➖\n"
-        f"⏱️ <b>Tổng nạp:</b> <code>{u['total_deposit']:,}đ</code>\n"
-        f"📊 <b>Nạp tháng:</b> <code>{u['month_deposit']:,}đ</code>\n"
-        f"💳 <b>Số dư ví:</b> <code>{u['balance']:,}đ</code>"
+        f"💰 <b>Số dư ví:</b> <code>{u['balance']:,}đ</code>\n"
+        f"📊 <b>Tổng nạp:</b> <code>{u['total_deposit']:,}đ</code>"
         f"{mode_tag}"
         f"</blockquote>"
     )
     kb = [
         [InlineKeyboardButton("👤 TÀI KHOẢN", callback_data='menu_account'), InlineKeyboardButton("🛒 CỬA HÀNG", callback_data='menu_shop')],
-        [InlineKeyboardButton("💰 NẠP TIỀN", callback_data='menu_deposit'), InlineKeyboardButton("📊 LỊCH SỬ", callback_data='menu_history_hub')],
+        [InlineKeyboardButton("💳 NẠP TIỀN TỰ ĐỘNG", callback_data='menu_deposit')],
+        [InlineKeyboardButton("📊 LỊCH SỬ GIAO DỊCH", callback_data='menu_history_hub')],
         [InlineKeyboardButton("🔑 KHO KEY CŨ", callback_data='my_keys'), InlineKeyboardButton("📥 TẢI FILE", url=CLIENT_GROUP_LINK)],
         [InlineKeyboardButton("💬 HỖ TRỢ / LIÊN HỆ", url=SUPPORT_CONTACT)]
     ]
@@ -126,7 +124,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, is_
 
     text, kb = build_main_menu_content(uid)
     if is_start and update.message:
-        l_msg = await update.message.reply_text("✨ <i>Đang khởi tạo giao diện...</i>", parse_mode="HTML")
+        l_msg = await update.message.reply_text("✨ <i>Đang tải hệ thống...</i>", parse_mode="HTML")
         await asyncio.sleep(0.15)
         try: await l_msg.delete()
         except Exception: pass
@@ -141,21 +139,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_main_menu(update, context, is_start=True)
 
 async def cmd_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    u, is_s = get_u(update.effective_user.id), is_seller(update.effective_user.id)
+    uid = update.effective_user.id
+    u, is_s = get_u(uid), is_seller(uid)
     p = db["seller_prices"] if is_s else db["prices"]
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton(f"⚡ 1H: {p['1h']:,}đ [{len(db['s_1h'])}]", callback_data='shop_1h'), InlineKeyboardButton(f"⏱️ 3D: {p['3d']:,}đ [{len(db['s_3d'])}]", callback_data='shop_3d')],
         [InlineKeyboardButton(f"💎 1D: {p['1d']:,}đ [{len(db['s_1d'])}]", callback_data='shop_1d'), InlineKeyboardButton(f"👑 7D: {p['7d']:,}đ [{len(db['s_7d'])}]", callback_data='shop_7d')],
         [InlineKeyboardButton(f"🚀 30D: {p['30d']:,}đ [{len(db['s_30d'])}]", callback_data='shop_30d'), InlineKeyboardButton(f"🌟 1Y: {p['1y']:,}đ [{len(db['s_1y'])}]", callback_data='shop_1y')],
-        [InlineKeyboardButton("💸 Nạp Tiền", callback_data='menu_deposit'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
+        [InlineKeyboardButton("💳 Nạp Tiền", callback_data='menu_deposit'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
     ])
-    await update.message.reply_text(f"🛒 <b>CỬA HÀNG HACK VIP</b>\n<blockquote>💎 Số dư: <code>{u['balance']:,}đ</code></blockquote>", reply_markup=kb, parse_mode="HTML")
+    text = f"🛒 <b>CỬA HÀNG HACK VIP</b>\n<blockquote>💎 Số dư ví: <code>{u['balance']:,}đ</code>\nChọn gói thời gian cần mua bên dưới:</blockquote>"
+    if update.message: await update.message.reply_text(text, reply_markup=kb, parse_mode="HTML")
+    elif update.callback_query: await edit_or_send(update.callback_query, text, kb)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     uid = query.from_user.id
     if check_spam(uid):
-        await query.answer("⚠️ Thao tác quá nhanh!", show_alert=True)
+        try: await query.answer("⚠️ Thao tác quá nhanh!", show_alert=True)
+        except Exception: pass
         return
     try: await query.answer()
     except Exception: pass
@@ -205,9 +207,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(f"⚡ 1H: {p['1h']:,}đ [{len(db['s_1h'])}]", callback_data='shop_1h'), InlineKeyboardButton(f"⏱️ 3D: {p['3d']:,}đ [{len(db['s_3d'])}]", callback_data='shop_3d')],
             [InlineKeyboardButton(f"💎 1D: {p['1d']:,}đ [{len(db['s_1d'])}]", callback_data='shop_1d'), InlineKeyboardButton(f"👑 7D: {p['7d']:,}đ [{len(db['s_7d'])}]", callback_data='shop_7d')],
             [InlineKeyboardButton(f"🚀 30D: {p['30d']:,}đ [{len(db['s_30d'])}]", callback_data='shop_30d'), InlineKeyboardButton(f"🌟 1Y: {p['1y']:,}đ [{len(db['s_1y'])}]", callback_data='shop_1y')],
-            [InlineKeyboardButton("💸 Nạp Tiền", callback_data='menu_deposit'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
+            [InlineKeyboardButton("💳 Nạp Tiền", callback_data='menu_deposit'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
         ])
-        await edit_or_send(query, f"🛒 <b>CỬA HÀNG HACK VIP</b>\n<blockquote>Số dư: <code>{u['balance']:,}đ</code></blockquote>", kb)
+        await edit_or_send(query, f"🛒 <b>CỬA HÀNG HACK VIP</b>\n<blockquote>💎 Số dư ví: <code>{u['balance']:,}đ</code>\nChọn gói thời gian cần mua bên dưới:</blockquote>", kb)
     elif data.startswith('shop_'):
         kt = data.split('_')[1]
         price, kho = {'1h': (p['1h'], db['s_1h']), '3d': (p['3d'], db['s_3d']), '1d': (p['1d'], db['s_1d']), '7d': (p['7d'], db['s_7d']), '30d': (p['30d'], db['s_30d']), '1y': (p['1y'], db['s_1y'])}[kt]
@@ -216,7 +218,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("✏️ Nhập Số Lượng", callback_data=f"buyq_custom_{kt}")],
             [InlineKeyboardButton("◀️ Quay Lại", callback_data='menu_shop')]
         ])
-        await edit_or_send(query, f"📦 <b>GÓI {kt.upper()}</b>\n<blockquote>Giá: <code>{price:,}đ</code> | Kho: <code>{len(kho)}</code></blockquote>", kb)
+        await edit_or_send(query, f"📦 <b>GÓI {kt.upper()}</b>\n<blockquote>Giá: <code>{price:,}đ</code> | Kho sẵn: <code>{len(kho)}</code></blockquote>", kb)
     elif data.startswith('buyq_custom_'):
         admin_state[uid] = f"buy_custom_{data.split('_')[2]}"
         await edit_or_send(query, "💬 <b>Nhập số lượng cần mua:</b>", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại", callback_data='menu_shop')]]))
@@ -230,7 +232,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("✏️ Nhập Số Tiền Tự Chọn", callback_data='pre_qr_custom')],
             [InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
         ])
-        await edit_or_send(query, "💸 <b>NẠP TIỀN TỰ ĐỘNG</b>\n<blockquote>Chọn nhanh mệnh giá hoặc bấm nhập số tiền tùy ý:</blockquote>", kb_dep)
+        await edit_or_send(query, "💳 <b>NẠP TIỀN TỰ ĐỘNG</b>\n<blockquote>Chọn nhanh mệnh giá hoặc bấm nhập số tiền tùy ý:</blockquote>", kb_dep)
     elif data.startswith('pre_qr_'):
         sub = data.replace('pre_qr_', '')
         if sub == 'custom':
