@@ -17,7 +17,6 @@ SUPPORT_CONTACT = "https://t.me/lebindz"
 BANK_ID = "VPBank"
 ACCOUNT_NO = "AGBSP4LRK4B099"
 ACCOUNT_NAME = "LE GIA BAO"
-SEPAY_KEY = os.environ.get("SEPAY_API_KEY", "botgetkey_sepay")
 
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
 DB_FILE = "database.json"
@@ -513,17 +512,22 @@ def main():
     app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("shop", cmd_shop))
-    app.add_handler(CommandHandler("help", cmd_help))
-    app.add_handler(CommandHandler("id", cmd_id))
-    app.add_handler(CommandHandler("me", cmd_me))
-    app.add_handler(CommandHandler("admin", cmd_admin))
-    app.add_handler(CommandHandler("stats", cmd_stats))
-    app.add_handler(CommandHandler("users", cmd_users))
-    app.add_handler(CommandHandler("thongbao", cmd_thongbao))
+    app.add_handler(CommandHandler("help", lambda u, c: u.message.reply_text("📖 Hướng dẫn sử dụng hệ thống.")))
+    app.add_handler(CommandHandler("id", lambda u, c: u.message.reply_text(f"🆔 ID: <code>{u.effective_user.id}</code>", parse_mode="HTML")))
+    app.add_handler(CommandHandler("me", lambda u, c: u.message.reply_text(f"👤 Số dư: <code>{get_u(u.effective_user.id)['balance']:,}đ</code>", parse_mode="HTML")))
+    app.add_handler(CommandHandler("admin", lambda u, c: show_admin_panel(u.message, u.effective_user.id, False) if is_admin(u.effective_user.id) else None))
+    app.add_handler(CommandHandler("stats", lambda u, c: u.message.reply_text(f"📊 Doanh thu: {db['total_rev']:,}đ") if is_admin(u.effective_user.id) else None))
+    app.add_handler(CommandHandler("users", lambda u, c: u.message.reply_text(f"👥 Users: {len(db['users'])}") if is_admin(u.effective_user.id) else None))
+    app.add_handler(CommandHandler("thongbao", lambda u, c: admin_bits(u, c)))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.Document.FileExtension("json"), handle_document_restore))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_admin_text))
     app.run_polling(drop_pending_updates=True)
+
+def admin_bits(update, context):
+    if is_admin(update.effective_user.id):
+        admin_state[update.effective_user.id] = 'broadcast_msg'
+        update.message.reply_text("📢 Nhập nội dung thông báo:", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Hủy", callback_data='cancel_state')]]))
 
 if __name__ == '__main__':
     main()
