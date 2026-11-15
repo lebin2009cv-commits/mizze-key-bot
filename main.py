@@ -145,16 +145,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_data()
     await show_main_menu(update, context, is_start=True)
 
-# HÀM RENDER CỬA HÀNG HOÀN TOÀN MỚI, KHÔNG LỖI
 async def render_shop(query_or_update):
     uid = query_or_update.from_user.id if hasattr(query_or_update, 'from_user') else query_or_update.effective_user.id
     u, is_s = get_u(uid), is_seller(uid)
     p = db["seller_prices"] if is_s else db["prices"]
     
     kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton(f"⚡ 1H: {p['1h']:,}đ [{len(db['s_1h'])}]", callback_data='shop_1h'), InlineKeyboardButton(f"💎 1D: {p['1d']:,}đ [{len(db['s_1d'])}]", callback_data='shop_1d')],
-        [InlineKeyboardButton(f"⏱️ 3D: {p['3d']:,}đ [{len(db['s_3d'])}]", callback_data='shop_3d'), InlineKeyboardButton(f"👑 7D: {p['7d']:,}đ [{len(db['s_7d'])}]", callback_data='shop_7d')],
-        [InlineKeyboardButton(f"🚀 30D: {p['30d']:,}đ [{len(db['s_30d'])}]", callback_data='shop_30d'), InlineKeyboardButton(f"🌟 90D: {p['90d']:,}đ [{len(db['s_90d'])}]", callback_data='shop_90d')],
+        [InlineKeyboardButton(f"⚡ 1H: {p.get('1h', 5000):,}đ [{len(db['s_1h'])}]", callback_data='shop_1h'), InlineKeyboardButton(f"💎 1D: {p.get('1d', 20000):,}đ [{len(db['s_1d'])}]", callback_data='shop_1d')],
+        [InlineKeyboardButton(f"⏱️ 3D: {p.get('3d', 12000):,}đ [{len(db['s_3d'])}]", callback_data='shop_3d'), InlineKeyboardButton(f"👑 7D: {p.get('7d', 70000):,}đ [{len(db['s_7d'])}]", callback_data='shop_7d')],
+        [InlineKeyboardButton(f"🚀 30D: {p.get('30d', 150000):,}đ [{len(db['s_30d'])}]", callback_data='shop_30d'), InlineKeyboardButton(f"🌟 90D: {p.get('90d', 350000):,}đ [{len(db['s_90d'])}]", callback_data='shop_90d')],
         [InlineKeyboardButton("💳 Nạp Tiền", callback_data='menu_deposit'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
     ])
     text = f"🛒 <b>CỬA HÀNG HACK VIP</b>\n<blockquote>💎 Số dư ví: <code>{u['balance']:,}đ</code>\nChọn gói thời gian cần mua bên dưới:</blockquote>"
