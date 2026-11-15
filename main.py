@@ -75,30 +75,33 @@ def is_seller(uid):
 
 def check_spam(uid):
     now = time.time()
-    if uid in cooldown_cache and now - cooldown_cache[uid] < 0.3: return True
+    if uid in cooldown_cache and now - cooldown_cache[uid] < 0.25: return True
     if len(cooldown_cache) > 500: cooldown_cache.clear()
     cooldown_cache[uid] = now
     return False
 
 async def edit_or_send(query, text, reply_markup=None):
     try:
+        if query.message.text == text and query.message.reply_markup == reply_markup:
+            return
         await query.message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
     except Exception:
-        try: await query.message.reply_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
+        try:
+            await query.message.reply_text(text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
         except Exception: pass
 
 def build_main_menu_content(uid):
     u = get_u(uid)
     mode_tag = f"\n⚡ <b>Kho xem:</b> <code>{admin_view_mode.get(uid, 'seller').upper()}</code>" if is_admin(uid) else ""
     text = (
-        f"✨ <b>CHÀO MỪNG BẠN ĐẾN VỚI HỆ THỐNG STORE HACK</b> 💫\n\n"
+        f"✨ <b>HỆ THỐNG STORE HACK VIP</b> 💫\n\n"
         f"<blockquote>"
         f"🔔 <b>Kênh thông báo:</b> <a href='{CHANNEL_URL}'>Mizze Store</a>\n"
         f"☑️ <b>Admin:</b> <a href='{ADMIN_CONTACT}'>Le Bin</a>\n"
         f"➖ ➖ ➖ ➖ ➖ ➖ ➖ ➖\n"
         f"⏱️ <b>Tổng nạp:</b> <code>{u['total_deposit']:,}đ</code>\n"
-        f"📊 <b>Tổng nạp tháng:</b> <code>{u['month_deposit']:,}đ</code>\n"
-        f"💳 <b>Số dư:</b> <code>{u['balance']:,}đ</code>"
+        f"📊 <b>Nạp tháng:</b> <code>{u['month_deposit']:,}đ</code>\n"
+        f"💳 <b>Số dư ví:</b> <code>{u['balance']:,}đ</code>"
         f"{mode_tag}"
         f"</blockquote>"
     )
@@ -123,8 +126,8 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, is_
 
     text, kb = build_main_menu_content(uid)
     if is_start and update.message:
-        l_msg = await update.message.reply_text("✨ <i>Đang tải giao diện hiện đại...</i>", parse_mode="HTML")
-        await asyncio.sleep(0.2)
+        l_msg = await update.message.reply_text("✨ <i>Đang khởi tạo giao diện...</i>", parse_mode="HTML")
+        await asyncio.sleep(0.15)
         try: await l_msg.delete()
         except Exception: pass
         await update.message.reply_text(text, reply_markup=kb, parse_mode="HTML", disable_web_page_preview=True)
@@ -154,7 +157,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if check_spam(uid):
         await query.answer("⚠️ Thao tác quá nhanh!", show_alert=True)
         return
-    await query.answer()
+    try: await query.answer()
+    except Exception: pass
+
     u, data, is_s = get_u(uid), query.data, is_seller(uid)
     p = db["seller_prices"] if is_s else db["prices"]
 
@@ -163,7 +168,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_main_menu(update, context)
     elif data == 'back_menu': await show_main_menu(update, context)
     elif data == 'menu_account':
-        text = f"👤 <b>TÀI KHOẢN</b>\n<blockquote>ID: <code>{uid}</code>\nSố dư: <code>{u['balance']:,}đ</code>\nTổng nạp: <code>{u['total_deposit']:,}đ</code></blockquote>"
+        text = f"👤 <b>TÀI KHOẢN CÁ NHÂN</b>\n<blockquote>🆔 ID: <code>{uid}</code>\n💳 Số dư: <code>{u['balance']:,}đ</code>\n⏱️ Tổng nạp: <code>{u['total_deposit']:,}đ</code></blockquote>"
         kb_acc = InlineKeyboardMarkup([
             [InlineKeyboardButton("🔑 Kho Key Cũ", callback_data='my_keys'), InlineKeyboardButton("📊 Lịch Sử", callback_data='menu_history_hub')],
             [InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
@@ -185,7 +190,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(chat_id=uid, text=f"🔑 <b>TRÍCH XUẤT KEY CŨ:</b>\n<blockquote><code>{rev_keys[idx]}</code></blockquote>\n<i>(Chạm vào đoạn mã trên để sao chép)</i>", parse_mode="HTML")
         else: await query.answer("❌ Key không tồn tại!", show_alert=True)
     elif data == 'menu_history_hub':
-        await edit_or_send(query, f"📊 <b>LỊCH SỬ GIAO DỊCH</b>\n<blockquote>Số dư: <code>{u['balance']:,}đ</code></blockquote>", InlineKeyboardMarkup([[InlineKeyboardButton("🛍️ Lịch Sử Mua", callback_data='hist_buy')], [InlineKeyboardButton("💳 Lịch Sử Nạp", callback_data='hist_deposit')], [InlineKeyboardButton("◀️ Quay Lại", callback_data='back_menu')]]))
+        await edit_or_send(query, f"📊 <b>LỊCH SỬ GIAO DỊCH</b>\n<blockquote>Số dư hiện tại: <code>{u['balance']:,}đ</code></blockquote>", InlineKeyboardMarkup([[InlineKeyboardButton("🛍️ Lịch Sử Mua", callback_data='hist_buy')], [InlineKeyboardButton("💳 Lịch Sử Nạp", callback_data='hist_deposit')], [InlineKeyboardButton("◀️ Quay Lại", callback_data='back_menu')]]))
     elif data == 'hist_buy':
         b_list = "\n".join(reversed(u['buy_history'][-10:])) if u['buy_history'] else "<i>Trống.</i>"
         await edit_or_send(query, f"🛍️ <b>LỊCH SỬ MUA KEY</b>\n<blockquote>{b_list}</blockquote>", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại", callback_data='menu_history_hub')]]))
@@ -214,7 +219,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await edit_or_send(query, f"📦 <b>GÓI {kt.upper()}</b>\n<blockquote>Giá: <code>{price:,}đ</code> | Kho: <code>{len(kho)}</code></blockquote>", kb)
     elif data.startswith('buyq_custom_'):
         admin_state[uid] = f"buy_custom_{data.split('_')[2]}"
-        await edit_or_send(query, "💬 Nhập số lượng cần mua:", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại", callback_data='menu_shop')]]))
+        await edit_or_send(query, "💬 <b>Nhập số lượng cần mua:</b>", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại", callback_data='menu_shop')]]))
     elif data.startswith('buyq_'):
         _, kt, qty = data.split('_')
         await process_purchase(query, context, uid, kt, int(qty))
@@ -225,7 +230,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("✏️ Nhập Số Tiền Tự Chọn", callback_data='pre_qr_custom')],
             [InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
         ])
-        await edit_or_send(query, "💸 <b>NẠP TIỀN TỰ ĐỘNG</b>\n<blockquote>Mã QR tích hợp sẵn ID của bạn:</blockquote>", kb_dep)
+        await edit_or_send(query, "💸 <b>NẠP TIỀN TỰ ĐỘNG</b>\n<blockquote>Chọn nhanh mệnh giá hoặc bấm nhập số tiền tùy ý:</blockquote>", kb_dep)
     elif data.startswith('pre_qr_'):
         sub = data.replace('pre_qr_', '')
         if sub == 'custom':
@@ -312,7 +317,7 @@ async def send_qr_direct(query, context, uid, amount):
     memo = f"NAP {uid}"
     photo_url = f"https://img.vietqr.io/image/{BANK_ID}-{ACCOUNT_NO}-compact2.png?amount={amount}&addInfo={quote(memo)}&accountName={quote(ACCOUNT_NAME)}"
     text = f"💳 <b>QR NẠP {amount:,}Đ</b>\n<blockquote>STK: <code>{ACCOUNT_NO}</code>\nNội dung (Đã gắn ID): <code>{memo}</code></blockquote>"
-    kb = InlineKeyboardMarkup([[InlineKeyboardButton("🔗 Mở Ảnh QR", url=photo_url)], [InlineKeyboardButton("🔄 Kiểm Tra Số Dư", callback_data='menu_account'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]])
+    kb = InlineKeyboardMarkup([[InlineKeyboardButton("🔗 Mở Ảnh QR", url=photo_url)], [InlineKeyboardButton("🔄 Kiểm Tra Số Dư", callback_data='menu_account'), InlineKeyboardButton("◀️ Quay Lại", callback_data='menu_deposit')]])
     try:
         await query.message.delete()
         await context.bot.send_photo(chat_id=uid, photo=photo_url, caption=text, reply_markup=kb, parse_mode="HTML")
@@ -371,10 +376,7 @@ async def handle_document_restore(update: Update, context: ContextTypes.DEFAULT_
 
 async def handle_admin_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid, text = update.message.from_user.id, update.message.text
-    if uid not in admin_state:
-        # Nếu user đang gửi text tự do không ở trạng thái nào thì bỏ qua để tránh lỗi
-        return
-    
+    if uid not in admin_state: return
     state = admin_state[uid]
 
     if state == 'waiting_deposit':
