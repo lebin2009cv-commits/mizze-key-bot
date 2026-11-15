@@ -360,8 +360,17 @@ async def process_purchase(query, context, uid, kt, qty):
         u['buy_history'].append(f"• <b>[{t_str}]</b> Mua <code>{qty}x {kt.upper()}</code> (-{total:,}đ)")
         save_data()
 
+    # REALTIME NOTIFICATION TO LOG GROUP / ADMIN
     try:
-        await context.bot.send_message(chat_id=LOG_GROUP_ID, text=f"🛍️ <b>MUA HÀNG:</b> ID <code>{uid}</code> mua {qty}x {kt.upper()} (-{total:,}đ)\n💰 Số dư còn: <code>{b_after:,}đ</code>", parse_mode="HTML")
+        log_msg = (
+            f"🛒 <b>[REALTIME] GIAO DỊCH MUA HÀNG THÀNH CÔNG</b>\n"
+            f"👤 <b>Khách hàng:</b> ID <code>{uid}</code>\n"
+            f"📦 <b>Sản phẩm:</b> <code>{qty}x {kt.upper()}</code>\n"
+            f"💵 tổng tiền: <code>-{total:,}đ</code>\n"
+            f"💳 <b>Số dư ví còn lại:</b> <code>{b_after:,}đ</code>\n"
+            f"⏰ <b>Thời gian:</b> <code>{datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</code>"
+        )
+        await context.bot.send_message(chat_id=LOG_GROUP_ID, text=log_msg, parse_mode="HTML")
     except Exception: pass
 
     kb_buy = [[InlineKeyboardButton("🔑 Kho Key Cũ", callback_data='my_keys'), InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]]
@@ -504,8 +513,17 @@ def sepay():
                     u['deposit_history'].append(f"• <b>[{t_str}]</b> Nạp Auto <code>+{amt:,}đ</code> (Số dư: <code>{b_after:,}đ</code>)")
                     save_data()
                 try:
+                    # REALTIME NOTIFICATION TO USER & LOG GROUP / ADMIN
                     httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": tid, "text": f"🎉 <b>NẠP THÀNH CÔNG +{amt:,}đ!</b>\nSố dư mới: <code>{b_after:,}đ</code>", "parse_mode": "HTML"})
-                    httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": LOG_GROUP_ID, "text": f"💳 <b>NẠP TIỀN THÀNH CÔNG:</b> ID <code>{tid}</code> vừa nạp <code>+{amt:,}đ</code>\n💎 Số dư hiện tại: <code>{b_after:,}đ</code>", "parse_mode": "HTML"})
+                    
+                    realtime_log = (
+                        f"💳 <b>[REALTIME] NẠP TIỀN THÀNH CÔNG (SEPAY)</b>\n"
+                        f"👤 <b>Khách hàng:</b> ID <code>{tid}</code>\n"
+                        f"💵 <b>Số tiền nạp:</b> <code>+{amt:,}đ</code>\n"
+                        f"💎 <b>Số dư ví hiện tại:</b> <code>{b_after:,}đ</code>\n"
+                        f"⏰ <b>Thời gian:</b> <code>{datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</code>"
+                    )
+                    httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": LOG_GROUP_ID, "text": realtime_log, "parse_mode": "HTML"})
                 except Exception: pass
     return jsonify({"success": True}), 200
 
