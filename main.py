@@ -138,8 +138,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_data()
     await show_main_menu(update, context, is_start=True)
 
-async def render_shop(update_or_query, context, is_callback=False):
-    uid = update_or_query.from_user.id if is_callback else update_or_query.effective_user.id
+async def render_shop(query_or_msg, context, is_callback=False):
+    uid = query_or_msg.from_user.id if is_callback else query_or_msg.effective_user.id
     u, is_s = get_u(uid), is_seller(uid)
     p = db["seller_prices"] if is_s else db["prices"]
     kb = InlineKeyboardMarkup([
@@ -150,9 +150,9 @@ async def render_shop(update_or_query, context, is_callback=False):
     ])
     text = f"🛒 <b>CỬA HÀNG HACK VIP</b>\n<blockquote>💎 Số dư ví: <code>{u['balance']:,}đ</code>\nChọn gói thời gian cần mua bên dưới:</blockquote>"
     if is_callback:
-        await safe_edit(update_or_query, text, kb)
+        await safe_edit(query_or_msg, text, kb)
     else:
-        await update_or_query.message.reply_text(text, reply_markup=kb, parse_mode="HTML")
+        await query_or_msg.message.reply_text(text, reply_markup=kb, parse_mode="HTML")
 
 async def render_deposit(query):
     uid = query.from_user.id
@@ -167,6 +167,32 @@ async def render_deposit(query):
     ])
     text = f"💳 <b>NẠP TIỀN TỰ ĐỘNG QUA QR</b>\n<blockquote>Số dư hiện tại: <code>{u['balance']:,}đ</code>\nChọn nhanh mệnh giá nạp bên dưới:</blockquote>"
     await safe_edit(query, text, kb_dep)
+
+async def render_admin_panel(query_or_msg, is_callback=False):
+    uid = query_or_msg.from_user.id if is_callback else query_or_msg.effective_user.id
+    if not is_admin(uid): return
+    mode = admin_view_mode.get(uid, 'seller').upper()
+    text = (
+        f"⚙️ <b>QUẢN TRỊ HỆ THỐNG ADMIN</b>\n\n"
+        f"<blockquote>"
+        f"📊 <b>Tổng doanh thu:</b> <code>{db['total_rev']:,}đ</code>\n"
+        f"👥 <b>Tổng thành viên:</b> <code>{len(db['users'])}</code>\n"
+        f"🟢 <b>Trạng thái bot:</b> <code>{'HOẠT ĐỘNG' if db['bot_active'] else 'BẢO TRÌ'}</code>\n"
+        f"⚡ <b>Chế độ xem:</b> <code>{mode}</code>"
+        f"</blockquote>"
+    )
+    kb = [
+        [InlineKeyboardButton("🔄 Chuyển Chế Độ Xem", callback_data='ad_switch_view'), InlineKeyboardButton("📢 Gửi Thông Báo", callback_data='ad_broadcast')],
+        [InlineKeyboardButton("💰 Sửa Bảng Giá", callback_data='ad_price_menu'), InlineKeyboardButton("📦 Thêm Kho Key", callback_data='ad_checkkey')],
+        [InlineKeyboardButton("👥 Quản Lý Seller", callback_data='ad_manageseller'), InlineKeyboardButton("💳 Cộng/Trừ Tiền", callback_data='ad_bal')],
+        [InlineKeyboardButton("🛡️ Sao Lưu (Backup)", callback_data='ad_get_backup'), InlineKeyboardButton("📥 Khôi Phục (Restore)", callback_data='ad_restore_prompt')],
+        [InlineKeyboardButton(f"🔄 Bật/Tắt Bot: {'Đang Bật' if db['bot_active'] else 'Đang Tắt'}", callback_data='toggle_bot_status')],
+        [InlineKeyboardButton("🏠 Trang Chủ", callback_data='back_menu')]
+    ]
+    if is_callback:
+        await safe_edit(query_or_msg, text, InlineKeyboardMarkup(kb))
+    else:
+        await query_or_msg.reply_text(text, reply_markup=InlineKeyboardMarkup(kb), parse_mode="HTML")
 
 async def cmd_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await render_shop(update, context, is_callback=False)
@@ -192,6 +218,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await render_shop(query, context, is_callback=True)
     elif data == 'menu_deposit':
         await render_deposit(query)
+    elif data == 'admin_panel' and is_admin(uid):
+        await render_admin_panel(query, is_callback=True)
     elif data == 'menu_account':
         text = f"👤 <b>TÀI KHOẢN CÁ NHÂN</b>\n<blockquote>🆔 ID: <code>{uid}</code>\n💳 Số dư: <code>{u['balance']:,}đ</code>\n⏱️ Tổng nạp: <code>{u['total_deposit']:,}đ</code></blockquote>"
         kb_acc = InlineKeyboardMarkup([
@@ -247,17 +275,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await safe_edit(query, "💬 <b>Vui lòng nhập số tiền bạn muốn nạp (ví dụ: 50000):</b>", InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Quay Lại", callback_data='menu_deposit')]]))
             return
         await send_qr_direct(query, context, uid, int(sub))
-    elif data == 'admin_panel' and is_admin(uid): await show_admin_panel(query, uid, is_edit=True)
     elif data == 'ad_switch_view' and is_admin(uid):
         admin_view_mode[uid] = 'member' if admin_view_mode.get(uid, 'seller') == 'seller' else 'seller'
-        await show_admin_panel(query, uid, is_edit=True)
+        await render_admin_panel(query, is_callback=True)
     elif data == 'ad_broadcast' and is_admin(uid):
         admin_state[uid] = 'broadcast_msg'
         await safe_edit(query, "📢 Nhập nội dung thông báo:", InlineKeyboardMarkup([[InlineKeyboardButton("❌ Hủy", callback_data='admin_panel')]]))
     elif data == 'toggle_bot_status' and is_admin(uid):
         db["bot_active"] = not db["bot_active"]
         save_data()
-        await show_admin_panel(query, uid, is_edit=True)
+        await render_admin_panel(query, is_callback=True)
     elif data == 'ad_price_menu' and is_admin(uid):
         await safe_edit(query, "💰 Chọn bảng giá:", InlineKeyboardMarkup([[InlineKeyboardButton("Member", callback_data='set_type_mem'), InlineKeyboardButton("Seller", callback_data='set_type_sel')], [InlineKeyboardButton("◀️ Quay Lại", callback_data='admin_panel')]]))
     elif data == 'set_type_mem' and is_admin(uid):
@@ -360,13 +387,12 @@ async def process_purchase(query, context, uid, kt, qty):
         u['buy_history'].append(f"• <b>[{t_str}]</b> Mua <code>{qty}x {kt.upper()}</code> (-{total:,}đ)")
         save_data()
 
-    # REALTIME NOTIFICATION TO LOG GROUP / ADMIN
     try:
         log_msg = (
-            f"🛒 <b>[REALTIME] GIAO DỊCH MUA HÀNG THÀNH CÔNG</b>\n"
+            f"🛒 <b>[REALTIME] MUA HÀNG THÀNH CÔNG</b>\n"
             f"👤 <b>Khách hàng:</b> ID <code>{uid}</code>\n"
             f"📦 <b>Sản phẩm:</b> <code>{qty}x {kt.upper()}</code>\n"
-            f"💵 tổng tiền: <code>-{total:,}đ</code>\n"
+            f"💵 <b>Tổng tiền:</b> <code>-{total:,}đ</code>\n"
             f"💳 <b>Số dư ví còn lại:</b> <code>{b_after:,}đ</code>\n"
             f"⏰ <b>Thời gian:</b> <code>{datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</code>"
         )
@@ -513,7 +539,6 @@ def sepay():
                     u['deposit_history'].append(f"• <b>[{t_str}]</b> Nạp Auto <code>+{amt:,}đ</code> (Số dư: <code>{b_after:,}đ</code>)")
                     save_data()
                 try:
-                    # REALTIME NOTIFICATION TO USER & LOG GROUP / ADMIN
                     httpx.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": tid, "text": f"🎉 <b>NẠP THÀNH CÔNG +{amt:,}đ!</b>\nSố dư mới: <code>{b_after:,}đ</code>", "parse_mode": "HTML"})
                     
                     realtime_log = (
@@ -550,7 +575,7 @@ def main():
     app.add_handler(CommandHandler("help", lambda u, c: u.message.reply_text("📖 Hướng dẫn sử dụng hệ thống.")))
     app.add_handler(CommandHandler("id", lambda u, c: u.message.reply_text(f"🆔 ID: <code>{u.effective_user.id}</code>", parse_mode="HTML")))
     app.add_handler(CommandHandler("me", lambda u, c: u.message.reply_text(f"👤 Số dư: <code>{get_u(u.effective_user.id)['balance']:,}đ</code>", parse_mode="HTML")))
-    app.add_handler(CommandHandler("admin", lambda u, c: show_admin_panel(u.message, u.effective_user.id, False) if is_admin(u.effective_user.id) else None))
+    app.add_handler(CommandHandler("admin", lambda u, c: render_admin_panel(u.message, False) if is_admin(u.effective_user.id) else None))
     app.add_handler(CommandHandler("stats", lambda u, c: u.message.reply_text(f"📊 Doanh thu: {db['total_rev']:,}đ") if is_admin(u.effective_user.id) else None))
     app.add_handler(CommandHandler("users", lambda u, c: u.message.reply_text(f"👥 Users: {len(db['users'])}") if is_admin(u.effective_user.id) else None))
     app.add_handler(CommandHandler("thongbao", lambda u, c: admin_bits(u, c)))
