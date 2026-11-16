@@ -238,11 +238,83 @@
         "8701923823": true,
         "8826086188": true,
         "8443928979": true,
-        "9023082155": true
+        "9023082155": true,
+        "8251671543": true,
+        "8819902772": true,
+        "8426964406": true,
+        "6547197323": true,
+        "8601056501": true,
+        "8221516019": true,
+        "9135470037": true,
+        "8012191092": true,
+        "9068268818": true,
+        "8936166105": true,
+        "6189152902": true,
+        "6325816237": true,
+        "8916907288": true,
+        "8354734314": true,
+        "9248837637": true,
+        "9265341066": true,
+        "8290338506": true,
+        "8900408843": true,
+        "8353295643": true,
+        "9253360436": true,
+        "8972810808": true,
+        "7714748785": true,
+        "6628919741": true,
+        "8069025866": true,
+        "5422749050": true,
+        "8865094065": true,
+        "9270125169": true,
+        "8245549061": true,
+        "8721818977": true,
+        "7072004934": true,
+        "8886019441": true,
+        "7931291516": true,
+        "7115610441": true,
+        "8003219300": true,
+        "8594863251": true,
+        "9154731328": true,
+        "9224995766": true,
+        "8932439686": true,
+        "6041672013": true,
+        "9173791490": true,
+        "9245854756": true,
+        "6782626218": true,
+        "8772472070": true,
+        "8781940487": true,
+        "7734450149": true,
+        "7879359283": true,
+        "8331950412": true,
+        "8886359407": true,
+        "7767899135": true,
+        "8637173607": true,
+        "8113882178": true,
+        "8776854685": true,
+        "8962570257": true,
+        "8749258228": true,
+        "8127041280": true,
+        "8813019916": true,
+        "8208498643": true,
+        "6143611641": true,
+        "9242619358": true,
+        "8875374854": true,
+        "8205053437": true,
+        "8789928194": true,
+        "7051422741": true,
+        "8849281545": true,
+        "8837751286": true,
+        "2006704323": true,
+        "8930904235": true,
+        "6415340575": true,
+        "7577997956": true,
+        "9096965082": true,
+        "8464580930": true,
+        "6380541620": true
     },
     "user_data": {
         "7976468365": {
-            "balance": 4685000,
+            "balance": 3890000,
             "total_deposit": 5060000,
             "deposit_history": [],
             "buy_history": [
@@ -261,7 +333,13 @@
                 "• Mua 1x 1D - 10,000đ (13/11/2026 14:27)",
                 "• Mua 1x 1D - 10,000đ (13/11/2026 16:19)",
                 "• Mua 1x 1D - 10,000đ (13/11/2026 17:01)",
-                "• Mua 1x 1D - 10,000đ (13/11/2026 17:08)"
+                "• Mua 1x 1D - 10,000đ (13/11/2026 17:08)",
+                "• <b>[15/11/2026 12:36:34]</b> Mua <code>15x 1H</code> (-75,000đ)",
+                "• <b>[15/11/2026 22:43:09]</b> Mua <code>5x 1D</code> (-100,000đ)",
+                "• <b>[15/11/2026 22:46:35]</b> Mua <code>2x 7D</code> (-140,000đ)",
+                "• <b>[15/11/2026 22:47:06]</b> Mua <code>3x 30D</code> (-450,000đ)",
+                "• <b>[16/11/2026 09:15:08]</b> Mua <code>4x 1H</code> (-20,000đ)",
+                "• <b>[16/11/2026 11:24:54]</b> Mua <code>1x 1D</code> (-10,000đ)"
             ],
             "my_keys": [
                 "[1D] MZ-BA7AABC405B679EDF0F1604C",
@@ -279,15 +357,53 @@
                 "[1D] MZ-38D387D7E0356E77466A69EB",
                 "[1D] MZ-1DFACA7220E52086DC2E8642",
                 "[1D] MZ-DBFCF949514D0D0B7C362D28",
-                "[1D] MZ-A4F54D3BE037C93E99FC1C0F"
-            ]
+                "[1D] MZ-A4F54D3BE037C93E99FC1C0F",
+                "[1H] MZ-597BC92B39AAB0FDCC11BFA0",
+                "[1H] MZ-0999877F652D6B4E00215D4C",
+                "[1H] MZ-FB1E20324536A9C29680F9AA",
+                "[1H] MZ-E43462376EB698280AA94435",
+                "[1H] MZ-D0903598561F3200781DEB80",
+                "[1H] MZ-0B0308AF787C7561F2ED11FE",
+                "[1H] MZ-A89881469C764B2B9F4BEC87",
+                "[1H] MZ-C51A872EDF874CCEE8502FA1",
+                "[1H] MZ-C1A51B703304D2A1B6C891B7",
+                "[1H] MZ-F3BAD166FF9B0AD205EF1888",
+                "[1H] MZ-C50FC36DAB39138C7A4071CD",
+                "[1H] MZ-DAFDCB08DB0C8AA8D7D05B1B",
+                "[1H] MZ-D7612CE545A5AEE385DB5CD7",
+                "[1H] MZ-34721DD764F8D723C827AE58",
+                "[1H] MZ-9A78827FDB3C053A99745EB2",
+                "[1D] MZ-4DECE33F2C88837EB82FB60B",
+                "[1D] MZ-944C9B61B0CE31467AF0A96E",
+                "[1D] MZ-52FE780ABCC1F1BDDD74FC78",
+                "[1D] MZ-385D3588F3075B1620435D63",
+                "[1D] MZ-B101E7DE8FA8179138DDA165",
+                "[7D] MZ-B01771E18F761BB58AF186B9",
+                "[7D] MZ-11842DBA752A5602871984C8",
+                "[30D] MZ-680D75062965BE866A5A6145",
+                "[30D] MZ-7FB67D6083A8D91985BF1E16",
+                "[30D] MZ-724B2E5D2360C376C47BBE9B",
+                "[1H] MZ-C50FC36DAB39138C7A4071CD",
+                "[1H] MZ-DAFDCB08DB0C8AA8D7D05B1B",
+                "[1H] MZ-D7612CE545A5AEE385DB5CD7",
+                "[1H] MZ-34721DD764F8D723C827AE58",
+                "[1D] MZ-EA37C69EB0D7BDA90395D122"
+            ],
+            "month_deposit": 0
         },
         "8348481529": {
-            "balance": 0,
-            "total_deposit": 0,
-            "deposit_history": [],
-            "buy_history": [],
-            "my_keys": []
+            "balance": 5000,
+            "total_deposit": 10000,
+            "deposit_history": [
+                "• <b>[16/11/2026 09:55:39]</b> Nạp Auto <code>+10,000đ</code> (Số dư: <code>10,000đ</code>)"
+            ],
+            "buy_history": [
+                "• <b>[16/11/2026 09:55:47]</b> Mua <code>1x 1H</code> (-5,000đ)"
+            ],
+            "my_keys": [
+                "[1H] MZ-BDB77E2A8D9E7CD1FDCABD6C"
+            ],
+            "month_deposit": 10000
         },
         "6589000851": {
             "balance": 0,
@@ -298,17 +414,25 @@
         },
         "8819902772": {
             "balance": 0,
-            "total_deposit": 0,
-            "deposit_history": [],
-            "buy_history": [],
-            "my_keys": []
+            "total_deposit": 70000,
+            "deposit_history": [
+                "• <b>[15/11/2026 12:55:41]</b> Nạp Auto <code>+70,000đ</code> (Số dư: <code>70,000đ</code>)"
+            ],
+            "buy_history": [
+                "• <b>[15/11/2026 12:55:59]</b> Mua <code>1x 7D</code> (-70,000đ)"
+            ],
+            "my_keys": [
+                "[7D] MZ-087214C97E302067A59962C3"
+            ],
+            "month_deposit": 70000
         },
         "8945542727": {
             "balance": 20000,
             "total_deposit": 20000,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "6753024304": {
             "balance": 0,
@@ -329,7 +453,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8535679882": {
             "balance": 0,
@@ -406,7 +531,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "7687980289": {
             "balance": 0,
@@ -417,7 +543,8 @@
             ],
             "my_keys": [
                 "[1H] MZ-A20B85436E1D62A3DE1E53C3"
-            ]
+            ],
+            "month_deposit": 0
         },
         "6324879928": {
             "balance": 0,
@@ -478,11 +605,18 @@
             "my_keys": []
         },
         "6150497703": {
-            "balance": 0,
-            "total_deposit": 0,
-            "deposit_history": [],
-            "buy_history": [],
-            "my_keys": []
+            "balance": 5000,
+            "total_deposit": 10000,
+            "deposit_history": [
+                "• <b>[16/11/2026 10:40:56]</b> Nạp Auto <code>+10,000đ</code> (Số dư: <code>10,000đ</code>)"
+            ],
+            "buy_history": [
+                "• <b>[16/11/2026 10:41:02]</b> Mua <code>1x 1H</code> (-5,000đ)"
+            ],
+            "my_keys": [
+                "[1H] MZ-470904E8242C6240A2C7CFF9"
+            ],
+            "month_deposit": 10000
         },
         "7374535722": {
             "balance": 0,
@@ -507,7 +641,8 @@
             ],
             "my_keys": [
                 "[1D] MZ-E4274D0A1D4BB4DDB2FBD39C"
-            ]
+            ],
+            "month_deposit": 0
         },
         "8736237976": {
             "balance": 0,
@@ -535,7 +670,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8849738474": {
             "balance": 0,
@@ -556,7 +692,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8719102519": {
             "balance": 0,
@@ -584,7 +721,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8778838100": {
             "balance": 0,
@@ -605,7 +743,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "7842436558": {
             "balance": 0,
@@ -623,7 +762,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "7853600652": {
             "balance": 0,
@@ -637,14 +777,22 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8993670062": {
             "balance": 0,
-            "total_deposit": 0,
-            "deposit_history": [],
-            "buy_history": [],
-            "my_keys": []
+            "total_deposit": 70000,
+            "deposit_history": [
+                "• <b>[16/11/2026 09:13:51]</b> Nạp Auto <code>+70,000đ</code> (Số dư: <code>70,000đ</code>)"
+            ],
+            "buy_history": [
+                "• <b>[16/11/2026 09:15:17]</b> Mua <code>1x 7D</code> (-70,000đ)"
+            ],
+            "my_keys": [
+                "[7D] MZ-781A9943A877E7BEC4715035"
+            ],
+            "month_deposit": 70000
         },
         "7817317458": {
             "balance": 0,
@@ -771,7 +919,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8599676267": {
             "balance": 0,
@@ -820,7 +969,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8793872600": {
             "balance": 0,
@@ -834,7 +984,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8544685422": {
             "balance": 0,
@@ -855,14 +1006,16 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8699818685": {
             "balance": 0,
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8557700318": {
             "balance": 0,
@@ -890,7 +1043,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "7505122558": {
             "balance": 0,
@@ -939,11 +1093,12 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8774120120": {
-            "balance": 0,
-            "total_deposit": 15000,
+            "balance": 5000,
+            "total_deposit": 20000,
             "deposit_history": [],
             "buy_history": [
                 "• Mua 1x 1H - 5,000đ (11/11/2026 05:38)",
@@ -954,7 +1109,8 @@
                 "[1H] MZ-34B98D94F78B8BD737FE53FF",
                 "[1H] MZ-C863B9C1EF19341E63E5B002",
                 "[1H] MZ-F83673FD21BC3A2CC1E90298"
-            ]
+            ],
+            "month_deposit": 0
         },
         "8144847562": {
             "balance": 0,
@@ -968,7 +1124,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8841120953": {
             "balance": 0,
@@ -995,7 +1152,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8897279898": {
             "balance": 0,
@@ -1055,7 +1213,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8782588378": {
             "balance": 0,
@@ -1101,14 +1260,25 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "9012480275": {
-            "balance": 0,
-            "total_deposit": 0,
-            "deposit_history": [],
-            "buy_history": [],
-            "my_keys": []
+            "balance": 14000,
+            "total_deposit": 39000,
+            "deposit_history": [
+                "• <b>[15/11/2026 13:59:10]</b> Nạp Auto <code>+10,000đ</code> (Số dư: <code>10,000đ</code>)",
+                "• <b>[16/11/2026 13:04:48]</b> Nạp Auto <code>+10,000đ</code> (Số dư: <code>15,000đ</code>)"
+            ],
+            "buy_history": [
+                "• <b>[15/11/2026 13:59:22]</b> Mua <code>1x 1H</code> (-5,000đ)",
+                "• <b>[16/11/2026 13:21:09]</b> Mua <code>1x 1D</code> (-20,000đ)"
+            ],
+            "my_keys": [
+                "[1H] MZ-597BC92B39AAB0FDCC11BFA0",
+                "[1D] MZ-FCBD3BA755FA50EBD1D4D952"
+            ],
+            "month_deposit": 20000
         },
         "6976868689": {
             "balance": 0,
@@ -1161,14 +1331,16 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8870120359": {
             "balance": 0,
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "5797154304": {
             "balance": 0,
@@ -1181,7 +1353,8 @@
             "my_keys": [
                 "[1D] MZ-E7EC35A8D45CA130179C783B",
                 "[7D] MZ-8CE022B55FBB2D7A7C8F42CF"
-            ]
+            ],
+            "month_deposit": 0
         },
         "8145079637": {
             "balance": 0,
@@ -1279,18 +1452,27 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8928668965": {
             "balance": 5000,
-            "total_deposit": 50000,
-            "deposit_history": [],
+            "total_deposit": 70000,
+            "deposit_history": [
+                "• <b>[15/11/2026 14:06:28]</b> Nạp Auto <code>+10,000đ</code> (Số dư: <code>15,000đ</code>)",
+                "• <b>[15/11/2026 14:12:46]</b> Nạp Auto <code>+10,000đ</code> (Số dư: <code>15,000đ</code>)"
+            ],
             "buy_history": [
-                "• Mua 1x 7D - 45,000đ (13/11/2026 05:14)"
+                "• Mua 1x 7D - 45,000đ (13/11/2026 05:14)",
+                "• <b>[15/11/2026 14:06:46]</b> Mua <code>1x 1D</code> (-10,000đ)",
+                "• <b>[15/11/2026 14:13:17]</b> Mua <code>1x 1D</code> (-10,000đ)"
             ],
             "my_keys": [
-                "[7D] MZ-14F0282B00203DC9B0AA80F1"
-            ]
+                "[7D] MZ-14F0282B00203DC9B0AA80F1",
+                "[1D] MZ-F266977896766C42E9DB5CEC",
+                "[1D] MZ-520FD4EE864956EA92239BA8"
+            ],
+            "month_deposit": 20000
         },
         "8872024482": {
             "balance": 0,
@@ -1360,7 +1542,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "7768497714": {
             "balance": 0,
@@ -1430,14 +1613,16 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8954027258": {
             "balance": 0,
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "7559057852": {
             "balance": 0,
@@ -1455,10 +1640,17 @@
         },
         "7576499018": {
             "balance": 0,
-            "total_deposit": 0,
-            "deposit_history": [],
-            "buy_history": [],
-            "my_keys": []
+            "total_deposit": 20000,
+            "deposit_history": [
+                "• <b>[16/11/2026 11:48:55]</b> Nạp Auto <code>+20,000đ</code> (Số dư: <code>20,000đ</code>)"
+            ],
+            "buy_history": [
+                "• <b>[16/11/2026 11:49:50]</b> Mua <code>1x 1D</code> (-20,000đ)"
+            ],
+            "my_keys": [
+                "[1D] MZ-26016E1562E752838ACA6D41"
+            ],
+            "month_deposit": 20000
         },
         "8364807620": {
             "balance": 0,
@@ -1582,14 +1774,16 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8615776728": {
             "balance": 0,
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8770918198": {
             "balance": 0,
@@ -1600,10 +1794,18 @@
         },
         "8471422804": {
             "balance": 0,
-            "total_deposit": 0,
-            "deposit_history": [],
-            "buy_history": [],
-            "my_keys": []
+            "total_deposit": 20000,
+            "deposit_history": [
+                "• <b>[16/11/2026 09:57:30]</b> Nạp Auto <code>+10,000đ</code> (Số dư: <code>10,000đ</code>)",
+                "• <b>[16/11/2026 09:58:44]</b> Nạp Auto <code>+10,000đ</code> (Số dư: <code>20,000đ</code>)"
+            ],
+            "buy_history": [
+                "• <b>[16/11/2026 09:58:55]</b> Mua <code>1x 1D</code> (-20,000đ)"
+            ],
+            "my_keys": [
+                "[1D] MZ-65D1A664779EB2146B3EC7DB"
+            ],
+            "month_deposit": 20000
         },
         "7830168007": {
             "balance": 0,
@@ -1631,7 +1833,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "5419275804": {
             "balance": 0,
@@ -1645,7 +1848,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8790689026": {
             "balance": 0,
@@ -1673,7 +1877,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "6609126589": {
             "balance": 0,
@@ -1747,11 +1952,29 @@
             "my_keys": []
         },
         "8277867608": {
-            "balance": 0,
-            "total_deposit": 0,
-            "deposit_history": [],
-            "buy_history": [],
-            "my_keys": []
+            "balance": 30000,
+            "total_deposit": 70000,
+            "deposit_history": [
+                "• <b>[15/11/2026 15:06:13]</b> Nạp Auto <code>+10,000đ</code> (Số dư: <code>10,000đ</code>)"
+            ],
+            "buy_history": [
+                "• <b>[15/11/2026 15:07:27]</b> Mua <code>1x 1H</code> (-5,000đ)",
+                "• <b>[15/11/2026 15:14:04]</b> Mua <code>1x 1H</code> (-5,000đ)",
+                "• <b>[15/11/2026 23:56:21]</b> Mua <code>1x 1H</code> (-5,000đ)",
+                "• <b>[16/11/2026 09:01:35]</b> Mua <code>1x 1H</code> (-5,000đ)",
+                "• <b>[16/11/2026 09:17:47]</b> Mua <code>4x 1H</code> (-20,000đ)"
+            ],
+            "my_keys": [
+                "[1H] MZ-0999877F652D6B4E00215D4C",
+                "[1H] MZ-FB1E20324536A9C29680F9AA",
+                "[1H] MZ-C1A51B703304D2A1B6C891B7",
+                "[1H] MZ-F3BAD166FF9B0AD205EF1888",
+                "[1H] MZ-3B9483C88A890F6A8F607463",
+                "[1H] MZ-6F2967BC6818F3D0DFA65945",
+                "[1H] MZ-6D92A7629EBE6BE0093AC332",
+                "[1H] MZ-F8D437C62DEB7AAF38D5834D"
+            ],
+            "month_deposit": 10000
         },
         "8810385563": {
             "balance": 0,
@@ -1793,7 +2016,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8494112745": {
             "balance": 0,
@@ -1821,7 +2045,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8626799930": {
             "balance": 0,
@@ -1929,7 +2154,8 @@
             "my_keys": [
                 "[30D] MZ-4356DB3229D725FD50DF8869",
                 "[30D] MZ-5173EC021AFF1345A90FA75A"
-            ]
+            ],
+            "month_deposit": 0
         },
         "7596743400": {
             "balance": 0,
@@ -1978,7 +2204,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8482253121": {
             "balance": 0,
@@ -1999,7 +2226,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "6520317046": {
             "balance": 0,
@@ -2034,14 +2262,16 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8963417569": {
             "balance": 0,
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8919641743": {
             "balance": 0,
@@ -2080,7 +2310,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8538900749": {
             "balance": 0,
@@ -2094,7 +2325,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "7589569709": {
             "balance": 0,
@@ -2136,7 +2368,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8864633500": {
             "balance": 0,
@@ -2175,14 +2408,16 @@
             ],
             "my_keys": [
                 "[1D] MZ-86E3A30BB6176EA1B0A89ADC"
-            ]
+            ],
+            "month_deposit": 0
         },
         "8817444885": {
             "balance": 0,
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8085229339": {
             "balance": 0,
@@ -2207,7 +2442,8 @@
             ],
             "my_keys": [
                 "[1H] MZ-0F574A6EF639E221FC9BCA7A"
-            ]
+            ],
+            "month_deposit": 0
         },
         "8793203456": {
             "balance": 0,
@@ -2232,7 +2468,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8790395709": {
             "balance": 0,
@@ -2299,7 +2536,8 @@
             "total_deposit": 0,
             "deposit_history": [],
             "buy_history": [],
-            "my_keys": []
+            "my_keys": [],
+            "month_deposit": 0
         },
         "8485828281": {
             "balance": 0,
@@ -2438,6 +2676,666 @@
             "deposit_history": [],
             "buy_history": [],
             "my_keys": []
+        },
+        "8251671543": {
+            "balance": 95000,
+            "total_deposit": 95000,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "7859968999": {
+            "balance": 0,
+            "total_deposit": 10000,
+            "month_deposit": 10000,
+            "deposit_history": [
+                "• <b>[15/11/2026 15:24:55]</b> Nạp Auto <code>+10,000đ</code> (Số dư: <code>10,000đ</code>)"
+            ],
+            "buy_history": [
+                "• <b>[15/11/2026 15:25:06]</b> Mua <code>1x 1H</code> (-5,000đ)",
+                "• <b>[15/11/2026 15:39:46]</b> Mua <code>1x 1H</code> (-5,000đ)"
+            ],
+            "my_keys": [
+                "[1H] MZ-E43462376EB698280AA94435",
+                "[1H] MZ-D0903598561F3200781DEB80"
+            ]
+        },
+        "9285668209": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8426964406": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "6547197323": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8601056501": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8221516019": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "9135470037": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8012191092": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "9068268818": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8936166105": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "6189152902": {
+            "balance": 25000,
+            "total_deposit": 70000,
+            "month_deposit": 40000,
+            "deposit_history": [
+                "• <b>[15/11/2026 15:39:41]</b> Nạp Auto <code>+20,000đ</code> (Số dư: <code>20,000đ</code>)",
+                "• <b>[15/11/2026 15:47:24]</b> Nạp Auto <code>+10,000đ</code> (Số dư: <code>10,000đ</code>)",
+                "• <b>[15/11/2026 18:36:45]</b> Nạp Auto <code>+10,000đ</code> (Số dư: <code>10,000đ</code>)"
+            ],
+            "buy_history": [
+                "• <b>[15/11/2026 15:40:58]</b> Mua <code>1x 1D</code> (-20,000đ)",
+                "• <b>[15/11/2026 15:47:45]</b> Mua <code>1x 1H</code> (-5,000đ)",
+                "• <b>[15/11/2026 16:00:04]</b> Mua <code>1x 1H</code> (-5,000đ)",
+                "• <b>[15/11/2026 18:37:01]</b> Mua <code>1x 1H</code> (-5,000đ)",
+                "• <b>[16/11/2026 11:40:47]</b> Mua <code>1x 1H</code> (-5,000đ)",
+                "• <b>[16/11/2026 13:13:52]</b> Mua <code>1x 1H</code> (-5,000đ)"
+            ],
+            "my_keys": [
+                "[1D] MZ-DCB78A4F987FE7BACFC5CCEF",
+                "[1H] MZ-0B0308AF787C7561F2ED11FE",
+                "[1H] MZ-A89881469C764B2B9F4BEC87",
+                "[1H] MZ-C51A872EDF874CCEE8502FA1",
+                "[1H] MZ-81F336E157716CBB17FDF25A",
+                "[1H] MZ-687767CF9A24E00FAD416DF1"
+            ]
+        },
+        "6325816237": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8916907288": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8949873715": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8354734314": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "9248837637": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "9265341066": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8296132027": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8900408843": {
+            "balance": 0,
+            "total_deposit": 45000,
+            "month_deposit": 45000,
+            "deposit_history": [
+                "• <b>[16/11/2026 03:39:39]</b> Nạp Auto <code>+45,000đ</code> (Số dư: <code>45,000đ</code>)"
+            ],
+            "buy_history": [
+                "• <b>[16/11/2026 03:41:09]</b> Mua <code>1x 3D</code> (-45,000đ)"
+            ],
+            "my_keys": [
+                "[3D] MZ-01863D87D4F62C6A0C0F6888"
+            ]
+        },
+        "8353295643": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "9253360436": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "7714748785": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8505777849": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8069025866": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "5422749050": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8865094065": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "9270125169": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8245549061": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "7598639604": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8721818977": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8692106736": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "7072004934": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8886019441": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "7931291516": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "7115610441": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8003219300": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8594863251": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "9154731328": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "9224995766": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8932439686": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "6041672013": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "9173791490": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "9245854756": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8382554679": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "6345208209": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "6782626218": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8317424077": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8772472070": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8781940487": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "7734450149": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "7879359283": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8331950412": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8886359407": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "7767899135": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8637173607": {
+            "balance": 5000,
+            "total_deposit": 10000,
+            "month_deposit": 10000,
+            "deposit_history": [
+                "• <b>[16/11/2026 09:52:18]</b> Nạp Auto <code>+10,000đ</code> (Số dư: <code>10,000đ</code>)"
+            ],
+            "buy_history": [
+                "• <b>[16/11/2026 09:52:34]</b> Mua <code>1x 1H</code> (-5,000đ)"
+            ],
+            "my_keys": [
+                "[1H] MZ-789E01949E9463E28DC835DE"
+            ]
+        },
+        "8113882178": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8776854685": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8962570257": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8749258228": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8127041280": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "7779995087": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8813019916": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8208498643": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "9242619358": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8205053437": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8875374854": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8789928194": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "7051422741": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8849281545": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8837751286": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "2006704323": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8930904235": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "7577997956": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "9096965082": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
+        },
+        "8464580930": {
+            "balance": 5000,
+            "total_deposit": 10000,
+            "month_deposit": 10000,
+            "deposit_history": [
+                "• <b>[16/11/2026 13:18:38]</b> Nạp Auto <code>+10,000đ</code> (Số dư: <code>10,000đ</code>)"
+            ],
+            "buy_history": [
+                "• <b>[16/11/2026 13:18:56]</b> Mua <code>1x 1H</code> (-5,000đ)"
+            ],
+            "my_keys": [
+                "[1H] MZ-9B5CF95C2BA2474B95AF67B7"
+            ]
+        },
+        "6380541620": {
+            "balance": 0,
+            "total_deposit": 0,
+            "month_deposit": 0,
+            "deposit_history": [],
+            "buy_history": [],
+            "my_keys": []
         }
     },
     "sellers": {
@@ -2460,58 +3358,105 @@
         "6723282969": {
             "daily_rev": 0,
             "target": 0
+        },
+        "7719291981": {
+            "daily_rev": 0,
+            "target": 0
+        },
+        "8789928194": {
+            "daily_rev": 0,
+            "target": 0
+        },
+        "8205053437": {
+            "daily_rev": 0,
+            "target": 0
+        },
+        "8875374854": {
+            "daily_rev": 0,
+            "target": 0
+        },
+        "8945542727": {
+            "daily_rev": 0,
+            "target": 0
+        },
+        "8251671543": {
+            "daily_rev": 0,
+            "target": 0
+        },
+        "7577997956": {
+            "daily_rev": 0,
+            "target": 0
         }
     },
     "s_1h": [
-        "MZ-597BC92B39AAB0FDCC11BFA0",
-        "MZ-0999877F652D6B4E00215D4C",
-        "MZ-FB1E20324536A9C29680F9AA",
-        "MZ-E43462376EB698280AA94435",
-        "MZ-D0903598561F3200781DEB80",
-        "MZ-0B0308AF787C7561F2ED11FE",
-        "MZ-A89881469C764B2B9F4BEC87",
-        "MZ-C51A872EDF874CCEE8502FA1",
-        "MZ-C1A51B703304D2A1B6C891B7",
-        "MZ-F3BAD166FF9B0AD205EF1888",
-        "MZ-C50FC36DAB39138C7A4071CD",
-        "MZ-DAFDCB08DB0C8AA8D7D05B1B",
-        "MZ-D7612CE545A5AEE385DB5CD7",
-        "MZ-34721DD764F8D723C827AE58",
-        "MZ-9A78827FDB3C053A99745EB2"
+        "MZ-4D3343372BF15C00479A1A23",
+        "MZ-8D9D713AF68C9B7215291AD5",
+        "MZ-58E865C06DC451442D5510DE",
+        "MZ-E972E4055CDDE2956A0945A8",
+        "MZ-E4164348C9E91961FF2A5E3F",
+        "MZ-50253454CB3635A56E3DF431"
     ],
     "s_1d": [
-        "MZ-F266977896766C42E9DB5CEC",
-        "MZ-520FD4EE864956EA92239BA8",
-        "MZ-DCB78A4F987FE7BACFC5CCEF",
-        "MZ-4DECE33F2C88837EB82FB60B",
-        "MZ-944C9B61B0CE31467AF0A96E",
-        "MZ-52FE780ABCC1F1BDDD74FC78",
-        "MZ-385D3588F3075B1620435D63",
-        "MZ-B101E7DE8FA8179138DDA165"
+        "MZ-B3BB0444548929914C3D08C2",
+        "MZ-8DF023C29D637BB7058F12CE",
+        "MZ-EA50C0864E0510AAA8201D87",
+        "MZ-A994B703FF01021CA8A5D967",
+        "MZ-47B6B35EE6281F6682E4F74A",
+        "MZ-C9D0A9D94F4D98E197A425CC",
+        "MZ-F1B87951BFC226CDB4F0E317",
+        "MZ-966B72B9EC4DE75670113901",
+        "MZ-FC5F7BDC3673A045BCC71511",
+        "MZ-EF533DFA6971E8D8C5B95A4F",
+        "MZ-1BF853E8235DA420C76EC7DE"
     ],
     "s_7d": [
-        "MZ-087214C97E302067A59962C3",
-        "MZ-B01771E18F761BB58AF186B9",
-        "MZ-11842DBA752A5602871984C8"
+        "MZ-B1B96CF67249627A989691FC",
+        "MZ-88B9D1CFBF7C1E39B0F31E77",
+        "MZ-7D7EABA8BC7E844FC1172386",
+        "MZ-843588D7642ED7E6672BF186"
     ],
     "s_30d": [
-        "MZ-680D75062965BE866A5A6145",
-        "MZ-7FB67D6083A8D91985BF1E16",
-        "MZ-724B2E5D2360C376C47BBE9B"
+        "MZ-5D91A5ED8BF7D157D4D9F587",
+        "MZ-C0E9A9064C094C75E9593AC5",
+        "MZ-997DD7D79C6E5FFABA303F4F",
+        "MZ-F2DDB5A996524FC067050BB4",
+        "MZ-D2BE651E17554CC8F8FA862A"
     ],
     "prices": {
         "1h": 5000,
         "1d": 20000,
         "7d": 70000,
-        "30d": 150000
+        "30d": 150000,
+        "3d": 45000,
+        "90d": 260000
     },
     "seller_prices": {
         "1h": 5000,
         "1d": 10000,
         "7d": 45000,
-        "30d": 70000
+        "30d": 70000,
+        "3d": 27000,
+        "90d": 170000
     },
-    "total_rev": 2905000,
+    "total_rev": 4450000,
     "bot_active": true,
-    "last_reset_date": "2026-11-14"
+    "last_reset_date": "2026-11-16",
+    "s_3d": [
+        "MZ-3F9BDB78FD7C109A07B108BA",
+        "MZ-D3EEF9C285684E51062E0B4D",
+        "MZ-BC59342BA6A88A38766E8715",
+        "MZ-C4CB5F12932054101B32D72E",
+        "MZ-C0633D1FC4FE129536308193",
+        "MZ-4B96D45392879B295E702DE9",
+        "MZ-0DC65B94A4E477BBB8D01695",
+        "MZ-4FA4AEDD57E8E39D4A18C941",
+        "MZ-97303A4DAFCC066A5992C616"
+    ],
+    "s_90d": [
+        "MZ-E044E76671690ECF44B17B78",
+        "MZ-5A5C1FFE21022D865E9DCA15",
+        "MZ-5B7CC40E921AFAFCB5246433",
+        "MZ-B4651306F8C9F3EAA13E2F63",
+        "MZ-275D8EF626108C6F1F828FE3"
+    ]
 }
